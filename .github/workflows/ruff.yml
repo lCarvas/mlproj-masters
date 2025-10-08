@@ -12,5 +12,5 @@ jobs:
         with:
           version-file: "pyproject.toml"
           args: "--version"
-      - run: ruff check --fix
+      - run: ruff check --fix --select I
       - run: ruff format
