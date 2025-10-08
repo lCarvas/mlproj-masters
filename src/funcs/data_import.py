@@ -1,6 +1,7 @@
+import matplotlib.pyplot as plt
 import polars as pl
-
-from pathlib import Path
+import seaborn as sns
+from pandas import DataFrame
 
 
 def import_data(file_path: str) -> pl.DataFrame:
@@ -47,3 +48,8 @@ def describe_data(
 
     for col in categoricalFeatures:
         print(df.get_column(col).value_counts())
+
+    pandas_df: DataFrame = df.to_pandas()
+
+    for i, col in enumerate(metricFeatures):
+        sns.boxplot(x=col, data=pandas_df)
