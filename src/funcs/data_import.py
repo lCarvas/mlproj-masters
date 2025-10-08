@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
 from pandas import DataFrame
@@ -25,9 +24,7 @@ def column_types(df: pl.DataFrame) -> dict[str, str]:
     Returns:
         dict[str, str]: A dictionary mapping column names to their data types.
     """
-    return {col: str(dtype) for col,
-
-            dtype in zip(df.columns, df.dtypes)}
+    return {col: str(dtype) for col, dtype in zip(df.columns, df.dtypes)}
 
 
 def describe_data(
