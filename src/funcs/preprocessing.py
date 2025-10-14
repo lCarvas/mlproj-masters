@@ -6,6 +6,16 @@ import polars as pl
 def fill_na(
     df: pl.DataFrame, metricFeatures: list[str], boolFeatures: list[str]
 ) -> pl.DataFrame:
+    """Fills NA values in the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to fill NA values.
+        metricFeatures (list[str]): Metric features to fill NA with median.
+        boolFeatures (list[str]): Boolean features to fill NA with 0.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with NA values filled.
+    """
     for col in metricFeatures:
         df = df.with_columns(
             pl.when(pl.col(col).is_null())
