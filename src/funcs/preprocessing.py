@@ -47,3 +47,35 @@ def bind_data(
         if v["upper"] is not None:
             df = df.filter(pl.col(k) <= v["upper"])
     return df
+
+
+def remove_unneeded_floats(
+    df: pl.DataFrame, unneeded_float_features: list[str]
+) -> pl.DataFrame:
+    """Convert specified float columns to integers.
+
+    This only strips the decimal part of the float, it does not round the values.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+        unneeded_float_features (list[str]): List of column names to convert from float to int.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with specified columns converted to integers.
+    """
+    for col in unneeded_float_features:
+        df = df.with_columns(pl.col(col).cast(pl.Int64))
+    return df
+
+
+def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
+    """Remove duplicate rows from the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with duplicate rows removed.
+    """
+    return df.unique()
+
