@@ -25,9 +25,25 @@ def fill_na(
     return df
 
 
-def removeOutliers(
+def bind_data(
     df: pl.DataFrame,
-    metricFeatures: list[str],
     thresholds: dict[str, dict[Literal["lower", "upper"], float | None]],
 ) -> pl.DataFrame:
+    """Bind data within specified thresholds.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be filtered.
+        thresholds (dict[str, dict[Literal["lower", "upper"], float | None]]):
+            A dictionary where keys are column names and values are dictionaries
+            with 'lower' and 'upper' keys specifying the threshold values.
+
+    Returns:
+        pl.DataFrame: Filtered Polars DataFrame.
+    """
+    for k, v in thresholds.items():
+        if v["lower"] is not None:
+            df = df.filter(pl.col(k) >= v["lower"])
+
+        if v["upper"] is not None:
+            df = df.filter(pl.col(k) <= v["upper"])
     return df
