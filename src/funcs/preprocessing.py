@@ -79,3 +79,31 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
     """
     return df.unique()
 
+
+def get_dummies(
+    df: pl.DataFrame, categorical_features: list[str]
+) -> pl.DataFrame:
+    """Convert categorical features to dummy variables.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+        categorical_features (list[str]): List of categorical feature names to convert.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with categorical features converted to dummy variables.
+    """
+    return df.to_dummies(columns=categorical_features, drop_first=True)
+
+
+def scale_data(df: pl.DataFrame) -> pl.DataFrame:
+    """Scale numerical features in the DataFrame using Min-Max scaling.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with scaled numerical features.
+    """
+    return df.select(
+        (pl.all() - pl.all().min()) / (pl.all().max() - pl.all().min())
+    )
