@@ -1,38 +1,70 @@
 from typing import Literal
 
 import polars as pl
+from polars._typing import PythonLiteral
 
 
 def fill_na(
-    df: pl.DataFrame, metricFeatures: list[str], boolFeatures: list[str]
-) -> pl.DataFrame:
+    train_df: pl.DataFrame,
+    test_df: pl.DataFrame,
+    metricFeatures: list[str],
+    boolFeatures: list[str],
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fills NA values in the DataFrame.
 
     Args:
-        df (pl.DataFrame): Polars DataFrame to fill NA values.
+        train_df (pl.DataFrame): Train Polars DataFrame to fill NA values.
+        test_df (pl.DataFrame): Validation Polars DataFrame to fill NA values.
         metricFeatures (list[str]): Metric features to fill NA with median.
         boolFeatures (list[str]): Boolean features to fill NA with 0.
 
     Returns:
-        pl.DataFrame: Polars DataFrame with NA values filled.
+        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    for col in metricFeatures:
-        df = df.with_columns(
-            pl.when(pl.col(col).is_null())
-            .then(pl.col(col).median())
-            .otherwise(pl.col(col))
-            .alias(col)
+    # train_df = train_df.with_columns(
+    #     pl.when(pl.col(col).is_null())
+    #     .then(train_col_median)
+    #     .otherwise(pl.col(col))
+    #     .alias(col)
+    # )
+
+    # test_df = test_df.with_columns(
+    #     pl.when(pl.col(col).is_null())
+    #     .then(train_col_median)
+    #     .otherwise(pl.col(col))
+    #     .alias(col)
+    # )
+
+    # train_df = train_df.with_columns(
+    #     pl.when(pl.col(feat).is_null())
+    #     .then(pl.lit(0))
+    #     .otherwise(pl.col(feat))
+    #     .alias(feat)
+    # )
+
+    # test_df = test_df.with_columns(
+    #     pl.when(pl.col(feat).is_null())
+    #     .then(pl.lit(0))
+    #     .otherwise(pl.col(feat))
+    #     .alias(feat)
+    # )
+
+    for feat in metricFeatures:
+        train_col_median: PythonLiteral | None = train_df.get_column(
+            feat
+        ).median()
+
+        train_df = train_df.with_columns(
+            pl.col(feat).fill_null(train_col_median)
         )
 
-    for col in boolFeatures:
-        df = df.with_columns(
-            pl.when(pl.col(col).is_null())
-            .then(pl.lit(0))
-            .otherwise(pl.col(col))
-            .alias(col)
-        )
+        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
 
-    return df
+    for feat in boolFeatures:
+        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
+        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
+
+    return train_df, test_df
 
 
 def bind_data(
@@ -56,6 +88,7 @@ def bind_data(
 
         if v["upper"] is not None:
             df = df.filter(pl.col(k) <= v["upper"])
+
     return df
 
 
