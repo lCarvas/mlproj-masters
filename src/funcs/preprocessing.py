@@ -542,3 +542,46 @@ def fix_transmission_spelling(element: str) -> str:
             return transmission
 
     return element + "::none"
+
+
+def fix_fuel_type(df: pl.DataFrame) -> pl.DataFrame:
+    """Fix fuel types in the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with fixed fuel types.
+    """
+    df = df.with_columns(
+        pl.col("fuelType")
+        .str.strip_chars()
+        .str.to_lowercase()
+        .map_elements(fix_fuel_type_spelling)
+    )
+
+    return df
+
+
+def fix_fuel_type_spelling(element: str) -> str:
+    """Fix fuel type spelling for a given element.
+
+    Args:
+        element (str): The fuel type to be checked and fixed.
+
+    Returns:
+        str: The fixed fuel type or the original element with "::none" appended if no match is found.
+    """
+    fuel_types: tuple[str, ...] = (
+        "petrol",
+        "diesel",
+        "hybrid",
+        "electric",
+        "other",
+    )
+
+    for fuel_type in fuel_types:
+        if element in fuel_type:
+            return fuel_type
+
+    return element + "::none"
