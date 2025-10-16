@@ -173,6 +173,14 @@ def scale_data(
 
 
 def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
+    """Fix brand names in the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with fixed brand names.
+    """
     df = df.with_columns(
         pl.col("Brand")
         .str.strip_chars()
@@ -185,6 +193,14 @@ def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def fix_brand_spelling(element: str) -> str:
+    """Fix brand spelling for a given element.
+
+    Args:
+        element (str): The brand name to be checked and fixed.
+
+    Returns:
+        str: The fixed brand name or the original element with "::none" appended if no match is found.
+    """
     brands: tuple[str, ...] = (
         "toyota",
         "hyundai",
