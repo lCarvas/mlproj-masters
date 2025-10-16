@@ -138,15 +138,35 @@ def get_dummies(
     return df.to_dummies(columns=categorical_features, drop_first=True)
 
 
-def scale_data(df: pl.DataFrame) -> pl.DataFrame:
+def scale_data(
+    df_train: pl.DataFrame, df_test: pl.DataFrame
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Scale numerical features in the DataFrame using Min-Max scaling.
 
     Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
+        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
+        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
 
     Returns:
-        pl.DataFrame: Polars DataFrame with scaled numerical features.
+        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    return df.select(
-        (pl.all() - pl.all().min()) / (pl.all().max() - pl.all().min())
+    df_train_min = df_train.min().to_dict()
+    df_train_max = df_test.max().to_dict()
+
+    df_train = df_train.with_columns(
+        [
+            (pl.col(col) - df_train_min[col])
+            / (df_train_max[col] - df_train_min[col])
+            for col in df_train.columns
+        ]
     )
+
+    df_test = df_test.with_columns(
+        [
+            (pl.col(col) - df_train_min[col])
+            / (df_train_max[col] - df_train_min[col])
+            for col in df_test.columns
+        ]
+    )
+
+    return df_train, df_test
