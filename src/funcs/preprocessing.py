@@ -170,3 +170,35 @@ def scale_data(
     )
 
     return df_train, df_test
+
+
+def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
+    df = df.with_columns(
+        pl.col("Brand")
+        .str.strip_chars()
+        .str.to_lowercase()
+        .str.replace("^[w]$", "vw")
+        .map_elements(fix_brand_spelling)
+    )
+
+    return df
+
+
+def fix_brand_spelling(element: str) -> str:
+    brands: tuple[str, ...] = (
+        "toyota",
+        "hyundai",
+        "ford",
+        "mercedes",
+        "opel",
+        "audi",
+        "skoda",
+        "bmw",
+        "vw",
+    )
+
+    for brand in brands:
+        if element in brand:
+            return brand
+
+    return element + "::none"
