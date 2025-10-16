@@ -499,3 +499,46 @@ def fix_model_spelling(element: str, brand: str) -> str:
         return new_model
     else:
         return element + "::none"
+
+
+def fix_transmission(df: pl.DataFrame) -> pl.DataFrame:
+    """Fix transmission types in the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with fixed transmission types.
+    """
+    df = df.with_columns(
+        pl.col("transmission")
+        .str.strip_chars()
+        .str.to_lowercase()
+        .map_elements(fix_transmission_spelling)
+    )
+
+    return df
+
+
+def fix_transmission_spelling(element: str) -> str:
+    """Fix transmission spelling for a given element.
+
+    Args:
+        element (str): The transmission type to be checked and fixed.
+
+    Returns:
+        str: The fixed transmission type or the original element with "::none" appended if no match is found.
+    """
+    transmissions: tuple[str, ...] = (
+        "manual",
+        "automatic",
+        "semi-auto",
+        "other",
+        "unknown",
+    )
+
+    for transmission in transmissions:
+        if element in transmission:
+            return transmission
+
+    return element + "::none"
