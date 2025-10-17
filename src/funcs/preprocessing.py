@@ -766,6 +766,18 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
             "Brand"
         )
     )
+
+    df = df.with_columns(
+        pl.coalesce(
+            pl.when(pl.col("model").str.contains("^x$"))
+            .then(pl.lit("bmw"))
+            .otherwise(pl.col("Brand")),
+            pl.when(pl.col("model").str.contains("^[aq]$"))
+            .then(pl.lit("audi"))
+            .otherwise(pl.col("Brand")),
+        ).alias("Brand")
+    )
+
     df = df.drop("brand_from_model")
 
     return df
