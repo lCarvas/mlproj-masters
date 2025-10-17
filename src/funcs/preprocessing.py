@@ -476,7 +476,7 @@ def fix_model_spelling(element: str, brand: str) -> str:
         if element is None:
             continue
 
-        if element in ("viva", "mokka", "verso", "golf"):
+        if element in ("viva", "mokka", "verso", "golf", "ka"):
             return element
 
         if element == "k":
@@ -491,7 +491,27 @@ def fix_model_spelling(element: str, brand: str) -> str:
         return element
 
     if brand is None:
-        return element + "::no_brand"
+        if len(element) == 1:
+            return element + "::no_brand"
+
+        if element in ("viva", "mokka", "verso", "golf", "i3", "i8"):
+            return element
+
+        no_brand_counter: int = 0
+
+        for model_tuple in models.values():
+            for model in model_tuple:
+                if model.startswith(element):
+                    if len(model) - len(element) <= 2:
+                        no_brand_counter += 1
+                        no_brand_new_model: str = model
+
+        if no_brand_counter > 1:
+            return element + "::multiple::no_brand"
+        elif no_brand_counter == 1:
+            return no_brand_new_model + "::no_brand"
+        else:
+            return element + "::none::no_brand"
 
     if counter > 1:
         return element + "::multiple"
