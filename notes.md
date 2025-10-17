@@ -49,3 +49,11 @@ Categorical Features: ["Brand", "model", "year", "transmission", "fuelType",
 - paintQuality%: 1524/75973 (2.01%)
 - previousOwners: 1550/75973 (2.04%)
 - hasDamage: 1548/75973 (2.04%)
+
+### Models
+
+- i3 and i8 correspond to bmw if brand is null
+  - this was done by manually searching the dataset
+- currently assuming ka is ka and not ka+, the features of both models are
+  identical and thus it's not feasable to try to distinguish them
+- will remove all rows that contain ambiguous models
