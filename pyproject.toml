@@ -15,10 +15,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "nbqa>=1.9.1",
-    "ruff>=0.13.2",
-]
+dev = ["ruff>=0.13.2"]
 
 [tool.ruff]
 line-length = 80
@@ -27,4 +24,24 @@ line-length = 80
 docstring-code-format = true
 
 [tool.ruff.lint]
-extend-select = ["I"]
+select = ["ALL"]
+ignore = [
+    "CPY",
+    "FIX",
+    "COM812",
+    "D100",
+    "D104",
+    "E501",
+    'ERA001',
+    "S101",
+    "TD003",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
