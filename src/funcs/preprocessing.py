@@ -479,8 +479,8 @@ def _resolve_no_brand(element: str, tol: int) -> str:
 
 
 def _fix_model_spelling(
-    element: str, brand: str | None, *, max_len_tolerance: int = 2
-) -> str:
+    element: str | None, brand: str | None, *, max_len_tolerance: int = 2
+) -> str | None:
     """Fix model spelling for a given element and brand.
 
     Args:
