@@ -15,9 +15,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
- "ruff>=0.13.2",
-]
+dev = ["ruff>=0.13.2"]
 
 [tool.ruff]
 line-length = 80
@@ -27,7 +25,17 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["CPY", "FIX", "COM812", "D100", "E501", 'ERA001', "S101", "TD003"]
+ignore = [
+    "CPY",
+    "FIX",
+    "COM812",
+    "D100",
+    "D104",
+    "E501",
+    'ERA001',
+    "S101",
+    "TD003",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
