@@ -1,22 +1,241 @@
-from typing import Literal
+from itertools import chain
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
-from polars._typing import PythonLiteral
+
+if TYPE_CHECKING:
+    from polars._typing import PythonLiteral
+
+_MODELS: dict[str, tuple[str, ...]] = {
+    "audi": (
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "a8",
+        "q2",
+        "q3",
+        "q5",
+        "q7",
+        "q8",
+        "r8",
+        "rs3",
+        "rs4",
+        "rs5",
+        "rs6",
+        "rs7",
+        "s3",
+        "s4",
+        "s5",
+        "s8",
+        "sq5",
+        "sq7",
+        "tt",
+    ),
+    "bmw": (
+        "1 series",
+        "2 series",
+        "3 series",
+        "4 series",
+        "5 series",
+        "6 series",
+        "7 series",
+        "8 series",
+        "i3",
+        "i8",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+        "m6",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5",
+        "x6",
+        "x7",
+        "z3",
+        "z4",
+    ),
+    "ford": (
+        "b-max",
+        "c-max",
+        "ecosport",
+        "edge",
+        "escort",
+        "fiesta",
+        "focus",
+        "fusion",
+        "galaxy",
+        "grand c-max",
+        "grand tourneo connect",
+        "ka",
+        "ka+",
+        "kuga",
+        "mondeo",
+        "mustang",
+        "puma",
+        "ranger",
+        "s-max",
+        "streetka",
+        "tourneo connect",
+        "tourneo custom",
+        "transit tourneo",
+    ),
+    "hyundai": (
+        "accent",
+        "amica",
+        "getz",
+        "i10",
+        "i20",
+        "i30",
+        "i40",
+        "i800",
+        "ioniq",
+        "ix20",
+        "ix35",
+        "kona",
+        "santa fe",
+        "terracan",
+        "tucson",
+        "veloster",
+    ),
+    "mercedes": (
+        "180",
+        "200",
+        "220",
+        "230",
+        "a class",
+        "b class",
+        "c class",
+        "cl class",
+        "cla class",
+        "clc class",
+        "clk",
+        "cls class",
+        "e class",
+        "g class",
+        "gl class",
+        "gla class",
+        "glb class",
+        "glc class",
+        "gle class",
+        "gls class",
+        "m class",
+        "r class",
+        "s class",
+        "sl class",
+        "slk",
+        "v class",
+        "x-class",
+    ),
+    "skoda": (
+        "citigo",
+        "fabia",
+        "kamiq",
+        "karoq",
+        "kodiaq",
+        "octavia",
+        "rapid",
+        "roomster",
+        "scala",
+        "superb",
+        "yeti",
+        "yeti outdoor",
+    ),
+    "opel": (
+        "adam",
+        "agila",
+        "ampera",
+        "antara",
+        "astra",
+        "cascada",
+        "combo life",
+        "corsa",
+        "crossland x",
+        "grandland x",
+        "gtc",
+        "insignia",
+        "kadjar",
+        "meriva",
+        "mokka",
+        "mokka x",
+        "tigra",
+        "vectra",
+        "viva",
+        "vivaro",
+        "zafira",
+        "zafira tourer",
+    ),
+    "vw": (
+        "amarok",
+        "arteon",
+        "beetle",
+        "caddy",
+        "caddy life",
+        "caddy maxi",
+        "caddy maxi life",
+        "california",
+        "caravelle",
+        "cc",
+        "eos",
+        "fox",
+        "golf",
+        "golf sv",
+        "jetta",
+        "passat",
+        "polo",
+        "scirocco",
+        "sharan",
+        "shuttle",
+        "t-cross",
+        "t-roc",
+        "tiguan",
+        "tiguan allspace",
+        "touareg",
+        "touran",
+        "up",
+    ),
+    "toyota": (
+        "auris",
+        "avensis",
+        "aygo",
+        "c-hr",
+        "camry",
+        "corolla",
+        "gt86",
+        "hilux",
+        "iq",
+        "land cruiser",
+        "prius",
+        "proace verso",
+        "rav4",
+        "supra",
+        "urban cruiser",
+        "verso",
+        "verso-s",
+        "yaris",
+    ),
+}
 
 
 def fill_na(
     train_df: pl.DataFrame,
     test_df: pl.DataFrame,
-    metricFeatures: list[str],
-    boolFeatures: list[str],
+    metric_features: list[str],
+    bool_features: list[str],
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fills NA values in the DataFrame.
 
     Args:
         train_df (pl.DataFrame): Train Polars DataFrame to fill NA values.
         test_df (pl.DataFrame): Validation Polars DataFrame to fill NA values.
-        metricFeatures (list[str]): Metric features to fill NA with median.
-        boolFeatures (list[str]): Boolean features to fill NA with 0.
+        metric_features (list[str]): Metric features to fill NA with median.
+        bool_features (list[str]): Boolean features to fill NA with 0.
 
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
@@ -49,7 +268,7 @@ def fill_na(
     #     .alias(feat)
     # )
 
-    for feat in metricFeatures:
+    for feat in metric_features:
         train_col_median: PythonLiteral | None = train_df.get_column(
             feat
         ).median()
@@ -60,7 +279,7 @@ def fill_na(
 
         test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
 
-    for feat in boolFeatures:
+    for feat in bool_features:
         train_df = train_df.with_columns(pl.col(feat).fill_null(0))
         test_df = test_df.with_columns(pl.col(feat).fill_null(0))
 
@@ -93,7 +312,8 @@ def bind_data(
 
 
 def remove_unneeded_floats(
-    df: pl.DataFrame, unneeded_float_features: list[str]
+    df: pl.DataFrame,
+    unneeded_float_features: list[str],
 ) -> pl.DataFrame:
     """Convert specified float columns to integers.
 
@@ -124,7 +344,8 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def get_dummies(
-    df: pl.DataFrame, categorical_features: list[str]
+    df: pl.DataFrame,
+    categorical_features: list[str],
 ) -> pl.DataFrame:
     """Convert categorical features to dummy variables.
 
@@ -139,7 +360,8 @@ def get_dummies(
 
 
 def scale_data(
-    df_train: pl.DataFrame, df_test: pl.DataFrame
+    df_train: pl.DataFrame,
+    df_test: pl.DataFrame,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Scale numerical features in the DataFrame using Min-Max scaling.
 
@@ -171,6 +393,25 @@ def scale_data(
 
     return df_train, df_test
 
+def _fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
+    """Generic function to fix data in a column based on tags.
+
+    Args:
+        col_name (str): Name of the column to be fixed.
+        col_expr (pl.Expr): Polars expression for the column.
+        tags (set[str]): Set of tags to check against.
+
+    Returns:
+        pl.Expr: Polars expression with fixed data.
+    """
+    return pl.coalesce(
+        *[
+            pl.when(pl.lit(tag).str.contains(col_expr)).then(pl.lit(tag))
+            for tag in tags
+        ],
+        col_expr + pl.lit("::none"),
+    ).alias(col_name)
+
 
 def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
     """Fix brand names in the DataFrame.
@@ -181,43 +422,26 @@ def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Polars DataFrame with fixed brand names.
     """
-    df = df.with_columns(
-        pl.col("Brand")
-        .str.strip_chars()
-        .str.to_lowercase()
-        .str.replace("^[w]$", "vw")
-        .map_elements(fix_brand_spelling)
+    return df.with_columns(
+        _fix_data(
+            "Brand",
+            pl.col("Brand")
+            .str.strip_chars()
+            .str.to_lowercase()
+            .str.replace("^[w]$", "vw"),
+            {
+                "toyota",
+                "hyundai",
+                "ford",
+                "mercedes",
+                "opel",
+                "audi",
+                "skoda",
+                "bmw",
+                "vw",
+            },
+        )
     )
-
-    return df
-
-
-def fix_brand_spelling(element: str) -> str:
-    """Fix brand spelling for a given element.
-
-    Args:
-        element (str): The brand name to be checked and fixed.
-
-    Returns:
-        str: The fixed brand name or the original element with "::none" appended if no match is found.
-    """
-    brands: tuple[str, ...] = (
-        "toyota",
-        "hyundai",
-        "ford",
-        "mercedes",
-        "opel",
-        "audi",
-        "skoda",
-        "bmw",
-        "vw",
-    )
-
-    for brand in brands:
-        if element in brand:
-            return brand
-
-    return element + "::none"
 
 
 def fix_models(df: pl.DataFrame) -> pl.DataFrame:
@@ -231,294 +455,87 @@ def fix_models(df: pl.DataFrame) -> pl.DataFrame:
     """
     df = df.with_columns(pl.col("model").str.strip_chars().str.to_lowercase())
 
-    df = df.with_columns(
+    return df.with_columns(
         pl.struct(["model", "Brand"])
         .map_elements(
-            lambda x: fix_model_spelling(x["model"], x["Brand"]),
+            lambda x: _fix_model_spelling(x["model"], x["Brand"]),
             return_dtype=pl.String,
         )
         .alias("model")
     )
 
-    return df
+
+def _matches_for_sequence(
+    models: tuple[str, ...] | chain[str], element: str, tol: int
+) -> list[str]:
+    return [
+        model
+        for model in models
+        if model.startswith(element) and len(model) - len(element) <= tol
+    ]
 
 
-def fix_model_spelling(element: str, brand: str) -> str:
-    """Fix model spelling for a given element.
+def _search_brand_matches(brand: str, element: str, tol: int) -> list[str]:
+    return _matches_for_sequence(_MODELS.get(brand, ()), element, tol)
+
+
+def _search_all_matches(element: str, tol: int) -> list[str]:
+    return _matches_for_sequence(
+        chain.from_iterable(_MODELS.values()), element, tol
+    )
+
+
+def _resolve_brand(element: str, brand: str, tol: int) -> str:
+    matches: list[str] = _search_brand_matches(brand, element, tol)
+
+    if len(matches) > 1:
+        if element in {"viva", "mokka", "verso", "golf", "ka"}:
+            return element
+        return element + "::multiple"
+    if len(matches) == 1:
+        return matches[0]
+    return element + "::none"
+
+
+def _resolve_no_brand(element: str, tol: int) -> str:
+    if len(element) == 1:
+        return element + "::no_brand"
+
+    if element in {"viva", "mokka", "verso", "golf", "ka", "i3", "i8"}:
+        return element
+
+    all_matches: list[str] = _search_all_matches(element, tol)
+
+    if len(all_matches) > 1:
+        return element + "::multiple::no_brand"
+    if len(all_matches) == 1:
+        return all_matches[0] + "::no_brand"
+    return element + "::none::no_brand"
+
+
+def _fix_model_spelling(
+    element: str, brand: str | None, *, max_len_tolerance: int = 2
+) -> str:
+    """Fix model spelling for a given element and brand.
 
     Args:
         element (str): The model name to be checked and fixed.
-        brand (str): The brand name associated with the model.
+        brand (str | None): The brand name associated with the element.
+        max_len_tolerance (int, optional): Max len difference between element and actual model. Defaults to 2.
 
     Returns:
-        str: The fixed model name, or the original element with "::multiple" or "::none" appended if applicable.
+        str: The fixed model name or the original element with appropriate suffixes if applicable.
     """
-    models: dict[str, tuple[str, ...]] = {
-        "audi": (
-            "a1",
-            "a2",
-            "a3",
-            "a4",
-            "a5",
-            "a6",
-            "a7",
-            "a8",
-            "q2",
-            "q3",
-            "q5",
-            "q7",
-            "q8",
-            "r8",
-            "rs3",
-            "rs4",
-            "rs5",
-            "rs6",
-            "rs7",
-            "s3",
-            "s4",
-            "s5",
-            "s8",
-            "sq5",
-            "sq7",
-            "tt",
-        ),
-        "bmw": (
-            "1 series",
-            "2 series",
-            "3 series",
-            "4 series",
-            "5 series",
-            "6 series",
-            "7 series",
-            "8 series",
-            "i3",
-            "i8",
-            "m2",
-            "m3",
-            "m4",
-            "m5",
-            "m6",
-            "x1",
-            "x2",
-            "x3",
-            "x4",
-            "x5",
-            "x6",
-            "x7",
-            "z3",
-            "z4",
-        ),
-        "ford": (
-            "b-max",
-            "c-max",
-            "ecosport",
-            "edge",
-            "escort",
-            "fiesta",
-            "focus",
-            "fusion",
-            "galaxy",
-            "grand c-max",
-            "grand tourneo connect",
-            "ka",
-            "ka+",
-            "kuga",
-            "mondeo",
-            "mustang",
-            "puma",
-            "ranger",
-            "s-max",
-            "streetka",
-            "tourneo connect",
-            "tourneo custom",
-            "transit tourneo",
-        ),
-        "hyundai": (
-            "accent",
-            "amica",
-            "getz",
-            "i10",
-            "i20",
-            "i30",
-            "i40",
-            "i800",
-            "ioniq",
-            "ix20",
-            "ix35",
-            "kona",
-            "santa fe",
-            "terracan",
-            "tucson",
-            "veloster",
-        ),
-        "mercedes": (
-            "180",
-            "200",
-            "220",
-            "230",
-            "a class",
-            "b class",
-            "c class",
-            "cl class",
-            "cla class",
-            "clc class",
-            "clk",
-            "cls class",
-            "e class",
-            "g class",
-            "gl class",
-            "gla class",
-            "glb class",
-            "glc class",
-            "gle class",
-            "gls class",
-            "m class",
-            "r class",
-            "s class",
-            "sl class",
-            "slk",
-            "v class",
-            "x-class",
-        ),
-        "skoda": (
-            "citigo",
-            "fabia",
-            "kamiq",
-            "karoq",
-            "kodiaq",
-            "octavia",
-            "rapid",
-            "roomster",
-            "scala",
-            "superb",
-            "yeti",
-            "yeti outdoor",
-        ),
-        "opel": (
-            "adam",
-            "agila",
-            "ampera",
-            "antara",
-            "astra",
-            "cascada",
-            "combo life",
-            "corsa",
-            "crossland x",
-            "grandland x",
-            "gtc",
-            "insignia",
-            "kadjar",
-            "meriva",
-            "mokka",
-            "mokka x",
-            "tigra",
-            "vectra",
-            "viva",
-            "vivaro",
-            "zafira",
-            "zafira tourer",
-        ),
-        "vw": (
-            "amarok",
-            "arteon",
-            "beetle",
-            "caddy",
-            "caddy life",
-            "caddy maxi",
-            "caddy maxi life",
-            "california",
-            "caravelle",
-            "cc",
-            "eos",
-            "fox",
-            "golf",
-            "golf sv",
-            "jetta",
-            "passat",
-            "polo",
-            "scirocco",
-            "sharan",
-            "shuttle",
-            "t-cross",
-            "t-roc",
-            "tiguan",
-            "tiguan allspace",
-            "touareg",
-            "touran",
-            "up",
-        ),
-        "toyota": (
-            "auris",
-            "avensis",
-            "aygo",
-            "c-hr",
-            "camry",
-            "corolla",
-            "gt86",
-            "hilux",
-            "iq",
-            "land cruiser",
-            "prius",
-            "proace verso",
-            "rav4",
-            "supra",
-            "urban cruiser",
-            "verso",
-            "verso-s",
-            "yaris",
-        ),
-    }
-
-    counter: int = 0
-    new_model: str = ""
-
-    for model in models.get(brand, ""):
-        if element is None:
-            continue
-
-        if element in ("viva", "mokka", "verso", "golf", "ka"):
-            return element
-
-        if element == "k":
-            return "ka"
-
-        if model.startswith(element):
-            if len(model) - len(element) <= 2:
-                counter += 1
-                new_model = model
-
     if element is None:
         return element
 
-    if brand is None:
-        if len(element) == 1:
-            return element + "::no_brand"
+    if element == "k":
+        element = "ka"
 
-        if element in ("viva", "mokka", "verso", "golf", "i3", "i8"):
-            return element
+    if brand:
+        return _resolve_brand(element, brand, max_len_tolerance)
 
-        no_brand_counter: int = 0
-
-        for model_tuple in models.values():
-            for model in model_tuple:
-                if model.startswith(element):
-                    if len(model) - len(element) <= 2:
-                        no_brand_counter += 1
-                        no_brand_new_model: str = model
-
-        if no_brand_counter > 1:
-            return element + "::multiple::no_brand"
-        elif no_brand_counter == 1:
-            return no_brand_new_model + "::no_brand"
-        else:
-            return element + "::none::no_brand"
-
-    if counter > 1:
-        return element + "::multiple"
-    elif counter == 1:
-        return new_model
-    else:
-        return element + "::none"
+    return _resolve_no_brand(element, max_len_tolerance)
 
 
 def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
@@ -530,227 +547,11 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Polars DataFrame with fixed models that had no brand.
     """
-    models_dict: dict[str, tuple[str, ...]] = {
-        "audi": (
-            "a1",
-            "a2",
-            "a3",
-            "a4",
-            "a5",
-            "a6",
-            "a7",
-            "a8",
-            "q2",
-            "q3",
-            "q5",
-            "q7",
-            "q8",
-            "r8",
-            "rs3",
-            "rs4",
-            "rs5",
-            "rs6",
-            "rs7",
-            "s3",
-            "s4",
-            "s5",
-            "s8",
-            "sq5",
-            "sq7",
-            "tt",
-        ),
-        "bmw": (
-            "1 series",
-            "2 series",
-            "3 series",
-            "4 series",
-            "5 series",
-            "6 series",
-            "7 series",
-            "8 series",
-            "i3",
-            "i8",
-            "m2",
-            "m3",
-            "m4",
-            "m5",
-            "m6",
-            "x1",
-            "x2",
-            "x3",
-            "x4",
-            "x5",
-            "x6",
-            "x7",
-            "z3",
-            "z4",
-        ),
-        "ford": (
-            "b-max",
-            "c-max",
-            "ecosport",
-            "edge",
-            "escort",
-            "fiesta",
-            "focus",
-            "fusion",
-            "galaxy",
-            "grand c-max",
-            "grand tourneo connect",
-            "ka",
-            "ka+",
-            "kuga",
-            "mondeo",
-            "mustang",
-            "puma",
-            "ranger",
-            "s-max",
-            "streetka",
-            "tourneo connect",
-            "tourneo custom",
-            "transit tourneo",
-        ),
-        "hyundai": (
-            "accent",
-            "amica",
-            "getz",
-            "i10",
-            "i20",
-            "i30",
-            "i40",
-            "i800",
-            "ioniq",
-            "ix20",
-            "ix35",
-            "kona",
-            "santa fe",
-            "terracan",
-            "tucson",
-            "veloster",
-        ),
-        "mercedes": (
-            "180",
-            "200",
-            "220",
-            "230",
-            "a class",
-            "b class",
-            "c class",
-            "cl class",
-            "cla class",
-            "clc class",
-            "clk",
-            "cls class",
-            "e class",
-            "g class",
-            "gl class",
-            "gla class",
-            "glb class",
-            "glc class",
-            "gle class",
-            "gls class",
-            "m class",
-            "r class",
-            "s class",
-            "sl class",
-            "slk",
-            "v class",
-            "x-class",
-        ),
-        "skoda": (
-            "citigo",
-            "fabia",
-            "kamiq",
-            "karoq",
-            "kodiaq",
-            "octavia",
-            "rapid",
-            "roomster",
-            "scala",
-            "superb",
-            "yeti",
-            "yeti outdoor",
-        ),
-        "opel": (
-            "adam",
-            "agila",
-            "ampera",
-            "antara",
-            "astra",
-            "cascada",
-            "combo life",
-            "corsa",
-            "crossland x",
-            "grandland x",
-            "gtc",
-            "insignia",
-            "kadjar",
-            "meriva",
-            "mokka",
-            "mokka x",
-            "tigra",
-            "vectra",
-            "viva",
-            "vivaro",
-            "zafira",
-            "zafira tourer",
-        ),
-        "vw": (
-            "amarok",
-            "arteon",
-            "beetle",
-            "caddy",
-            "caddy life",
-            "caddy maxi",
-            "caddy maxi life",
-            "california",
-            "caravelle",
-            "cc",
-            "eos",
-            "fox",
-            "golf",
-            "golf sv",
-            "jetta",
-            "passat",
-            "polo",
-            "scirocco",
-            "sharan",
-            "shuttle",
-            "t-cross",
-            "t-roc",
-            "tiguan",
-            "tiguan allspace",
-            "touareg",
-            "touran",
-            "up",
-        ),
-        "toyota": (
-            "auris",
-            "avensis",
-            "aygo",
-            "c-hr",
-            "camry",
-            "corolla",
-            "gt86",
-            "hilux",
-            "iq",
-            "land cruiser",
-            "prius",
-            "proace verso",
-            "rav4",
-            "supra",
-            "urban cruiser",
-            "verso",
-            "verso-s",
-            "yaris",
-        ),
-    }
-
     df = df.with_columns(pl.col("model").str.replace("::.*", ""))
 
     model_names: list[str] = []
     model_brands: list[str] = []
-    for brand, models in models_dict.items():
+    for brand, models in _MODELS.items():
         for model in models:
             model_names.append(model)
             model_brands.append(brand)
@@ -768,19 +569,15 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     df = df.with_columns(
-        pl.coalesce(
-            pl.when(pl.col("model").str.contains("^x$"))
-            .then(pl.lit("bmw"))
-            .otherwise(pl.col("Brand")),
-            pl.when(pl.col("model").str.contains("^[aq]$"))
-            .then(pl.lit("audi"))
-            .otherwise(pl.col("Brand")),
-        ).alias("Brand")
+        pl.when(pl.col("model").str.contains("^x$"))
+        .then(pl.lit("bmw"))
+        .when(pl.col("model").str.contains("^[aq]$"))
+        .then(pl.lit("audi"))
+        .otherwise(pl.col("Brand"))
+        .alias("Brand")
     )
 
-    df = df.drop("brand_from_model")
-
-    return df
+    return df.drop("brand_from_model")
 
 
 def fix_transmission(df: pl.DataFrame) -> pl.DataFrame:
@@ -792,38 +589,13 @@ def fix_transmission(df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Polars DataFrame with fixed transmission types.
     """
-    df = df.with_columns(
-        pl.col("transmission")
-        .str.strip_chars()
-        .str.to_lowercase()
-        .map_elements(fix_transmission_spelling)
+    return df.with_columns(
+        _fix_data(
+            "transmission",
+            pl.col("transmission").str.strip_chars().str.to_lowercase(),
+            {"manual", "automatic", "semi-auto", "other", "unknown"},
+        )
     )
-
-    return df
-
-
-def fix_transmission_spelling(element: str) -> str:
-    """Fix transmission spelling for a given element.
-
-    Args:
-        element (str): The transmission type to be checked and fixed.
-
-    Returns:
-        str: The fixed transmission type or the original element with "::none" appended if no match is found.
-    """
-    transmissions: tuple[str, ...] = (
-        "manual",
-        "automatic",
-        "semi-auto",
-        "other",
-        "unknown",
-    )
-
-    for transmission in transmissions:
-        if element in transmission:
-            return transmission
-
-    return element + "::none"
 
 
 def fix_fuel_type(df: pl.DataFrame) -> pl.DataFrame:
@@ -835,35 +607,10 @@ def fix_fuel_type(df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Polars DataFrame with fixed fuel types.
     """
-    df = df.with_columns(
-        pl.col("fuelType")
-        .str.strip_chars()
-        .str.to_lowercase()
-        .map_elements(fix_fuel_type_spelling)
+    return df.with_columns(
+        _fix_data(
+            "fuelType",
+            pl.col("fuelType").str.strip_chars().str.to_lowercase(),
+            {"petrol", "diesel", "hybrid", "electric", "other"},
+        )
     )
-
-    return df
-
-
-def fix_fuel_type_spelling(element: str) -> str:
-    """Fix fuel type spelling for a given element.
-
-    Args:
-        element (str): The fuel type to be checked and fixed.
-
-    Returns:
-        str: The fixed fuel type or the original element with "::none" appended if no match is found.
-    """
-    fuel_types: tuple[str, ...] = (
-        "petrol",
-        "diesel",
-        "hybrid",
-        "electric",
-        "other",
-    )
-
-    for fuel_type in fuel_types:
-        if element in fuel_type:
-            return fuel_type
-
-    return element + "::none"
