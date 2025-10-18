@@ -1,10 +1,7 @@
 from itertools import chain
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import polars as pl
-
-if TYPE_CHECKING:
-    from polars._typing import PythonLiteral
 
 _MODELS: dict[str, tuple[str, ...]] = {
     "audi": (
@@ -240,50 +237,17 @@ def fill_na(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    # train_df = train_df.with_columns(
-    #     pl.when(pl.col(col).is_null())
-    #     .then(train_col_median)
-    #     .otherwise(pl.col(col))
-    #     .alias(col)
-    # )
+    fill_map: dict[str, object] = {
+        **{
+            feat: train_df.get_column(feat).median() for feat in metric_features
+        },
+        **dict.fromkeys(bool_features, 0),
+    }
 
-    # test_df = test_df.with_columns(
-    #     pl.when(pl.col(col).is_null())
-    #     .then(train_col_median)
-    #     .otherwise(pl.col(col))
-    #     .alias(col)
-    # )
+    train_filled: pl.DataFrame = train_df.fill_null(fill_map)
+    test_filled: pl.DataFrame = test_df.fill_null(fill_map)
 
-    # train_df = train_df.with_columns(
-    #     pl.when(pl.col(feat).is_null())
-    #     .then(pl.lit(0))
-    #     .otherwise(pl.col(feat))
-    #     .alias(feat)
-    # )
-
-    # test_df = test_df.with_columns(
-    #     pl.when(pl.col(feat).is_null())
-    #     .then(pl.lit(0))
-    #     .otherwise(pl.col(feat))
-    #     .alias(feat)
-    # )
-
-    for feat in metric_features:
-        train_col_median: PythonLiteral | None = train_df.get_column(
-            feat
-        ).median()
-
-        train_df = train_df.with_columns(
-            pl.col(feat).fill_null(train_col_median)
-        )
-
-        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
-
-    for feat in bool_features:
-        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
-        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
-
-    return train_df, test_df
+    return train_filled, test_filled
 
 
 def bind_data(
@@ -392,6 +356,7 @@ def scale_data(
     )
 
     return df_train, df_test
+
 
 def _fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
     """Generic function to fix data in a column based on tags.
