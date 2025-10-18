@@ -9,6 +9,6 @@
   "notebook.defaultFormatter": "charliermarsh.ruff",
   "notebook.formatOnSave.enabled": true,
   "notebook.codeActionsOnSave": {
-    "source.fixAll.ruff": "explicit",
+    "notebook.source.fixAll.ruff": "explicit",
   }
 }
