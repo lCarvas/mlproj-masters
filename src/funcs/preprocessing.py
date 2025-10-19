@@ -308,19 +308,39 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def get_dummies(
-    df: pl.DataFrame,
+    df_train: pl.DataFrame,
+    df_test: pl.DataFrame,
     categorical_features: list[str],
-) -> pl.DataFrame:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Convert categorical features to dummy variables.
 
     Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
+        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
+        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
         categorical_features (list[str]): List of categorical feature names to convert.
 
     Returns:
-        pl.DataFrame: Polars DataFrame with categorical features converted to dummy variables.
+        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    return df.to_dummies(columns=categorical_features, drop_first=True)
+    df_train = df_train.to_dummies(
+        columns=categorical_features, drop_first=True
+    )
+
+    df_test = df_test.to_dummies(columns=categorical_features, drop_first=True)
+
+    all_columns: set[str] = set(df_train.columns).union(set(df_test.columns))
+
+    for col in all_columns:
+        if col not in df_train.columns:
+            df_train = df_train.with_columns(pl.lit(0).alias(col))
+        if col not in df_test.columns:
+            df_test = df_test.with_columns(pl.lit(0).alias(col))
+
+    final_cols: list[str] = sorted(all_columns)
+    df_train = df_train.select(final_cols)
+    df_test = df_test.select(final_cols)
+
+    return df_train, df_test
 
 
 def scale_data(
