@@ -378,7 +378,7 @@ def scale_data(
     return df_train, df_test
 
 
-def _fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
+def fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
     """Generic function to fix data in a column based on tags.
 
     Args:
@@ -396,37 +396,6 @@ def _fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
         ],
         col_expr + pl.lit("::none"),
     ).alias(col_name)
-
-
-def fix_brands(df: pl.DataFrame) -> pl.DataFrame:
-    """Fix brand names in the DataFrame.
-
-    Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
-
-    Returns:
-        pl.DataFrame: Polars DataFrame with fixed brand names.
-    """
-    return df.with_columns(
-        _fix_data(
-            "Brand",
-            pl.col("Brand")
-            .str.strip_chars()
-            .str.to_lowercase()
-            .str.replace("^[w]$", "vw"),
-            {
-                "toyota",
-                "hyundai",
-                "ford",
-                "mercedes",
-                "opel",
-                "audi",
-                "skoda",
-                "bmw",
-                "vw",
-            },
-        )
-    )
 
 
 def fix_models(df: pl.DataFrame) -> pl.DataFrame:
@@ -563,39 +532,3 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     return df.drop("brand_from_model")
-
-
-def fix_transmission(df: pl.DataFrame) -> pl.DataFrame:
-    """Fix transmission types in the DataFrame.
-
-    Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
-
-    Returns:
-        pl.DataFrame: Polars DataFrame with fixed transmission types.
-    """
-    return df.with_columns(
-        _fix_data(
-            "transmission",
-            pl.col("transmission").str.strip_chars().str.to_lowercase(),
-            {"manual", "automatic", "semi-auto", "other", "unknown"},
-        )
-    )
-
-
-def fix_fuel_type(df: pl.DataFrame) -> pl.DataFrame:
-    """Fix fuel types in the DataFrame.
-
-    Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
-
-    Returns:
-        pl.DataFrame: Polars DataFrame with fixed fuel types.
-    """
-    return df.with_columns(
-        _fix_data(
-            "fuelType",
-            pl.col("fuelType").str.strip_chars().str.to_lowercase(),
-            {"petrol", "diesel", "hybrid", "electric", "other"},
-        )
-    )
