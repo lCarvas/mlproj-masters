@@ -532,3 +532,16 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     return df.drop("brand_from_model")
+
+
+def drop_columns(df: pl.DataFrame, columns_to_drop: set[str]) -> pl.DataFrame:
+    """Drop specified columns from the DataFrame.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+        columns_to_drop (set[str]): Set of column names to drop.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with specified columns dropped.
+    """
+    return df.drop(columns_to_drop)
