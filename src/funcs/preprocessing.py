@@ -378,24 +378,29 @@ def scale_data(
     return df_train, df_test
 
 
-def fix_data(col_name: str, col_expr: pl.Expr, tags: set[str]) -> pl.Expr:
+def fix_data(
+    df: pl.DataFrame, col_name: str, col_expr: pl.Expr, tags: set[str]
+) -> pl.DataFrame:
     """Generic function to fix data in a column based on tags.
 
     Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
         col_name (str): Name of the column to be fixed.
         col_expr (pl.Expr): Polars expression for the column.
         tags (set[str]): Set of tags to check against.
 
     Returns:
-        pl.Expr: Polars expression with fixed data.
+        pl.DataFrame: Polars DataFrame with fixed data in the specified column.
     """
-    return pl.coalesce(
-        *[
-            pl.when(pl.lit(tag).str.contains(col_expr)).then(pl.lit(tag))
-            for tag in tags
-        ],
-        col_expr + pl.lit("::none"),
-    ).alias(col_name)
+    return df.with_columns(
+        pl.coalesce(
+            *[
+                pl.when(pl.lit(tag).str.contains(col_expr)).then(pl.lit(tag))
+                for tag in tags
+            ],
+            col_expr + pl.lit("::none"),
+        ).alias(col_name)
+    )
 
 
 def fix_models(df: pl.DataFrame) -> pl.DataFrame:
