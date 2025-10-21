@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import polars as pl
+import seaborn as sns
 from IPython.display import display
 
 
@@ -26,4 +28,15 @@ def get_correlation(df: pl.DataFrame) -> pd.DataFrame:
         pl.DataFrame: A Polars DataFrame representing the correlation matrix.
     """
     return df.to_pandas().corr()
+
+
+def corr_heatmap(corr: pd.DataFrame) -> None:
+    """Plots a heatmap of the correlation matrix.
+
+    Args:
+        corr (pd.DataFrame): The correlation matrix as a Pandas DataFrame.
+    """
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(data=corr, annot=True, cmap=plt.cm.get_cmap("Reds"), fmt=".1")
+    plt.show()
 
