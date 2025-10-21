@@ -6,7 +6,7 @@ import polars as pl
 import seaborn as sns
 from IPython.display import display
 from sklearn.feature_selection import RFE
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LassoCV, LinearRegression
 
 if TYPE_CHECKING:
     from numpy import dtype, ndarray
@@ -95,3 +95,26 @@ def rfe(
     display(f"Score with {nof} features: {high_score}")
     display(f"Features to select:\n{features_to_select}")
 
+
+def lasso(
+    x_train: pl.DataFrame,
+    y_train: pl.Series,
+) -> pl.DataFrame:
+    """Performs Lasso regression to identify important features.
+
+    Args:
+        x_train (pl.DataFrame): Train DataFrame containing regressor features.
+        y_train (pl.Series): Train Series containing target variable.
+
+    Returns:
+        pl.DataFrame: A Polars DataFrame with features and their corresponding coefficients.
+    """
+    reg = LassoCV()
+    reg.fit(x_train.to_pandas(), y_train.to_pandas())
+
+    return pl.DataFrame(
+        {
+            "Feature": x_train.columns,
+            "Coefficient": reg.coef_,
+        }
+    ).sort("Coefficient")
