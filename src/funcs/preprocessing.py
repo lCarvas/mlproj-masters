@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Mapping, Sequence
 from itertools import chain
 from typing import Literal
 
@@ -223,16 +224,16 @@ _MODELS: dict[str, tuple[str, ...]] = {
 def fill_na(
     train_df: pl.DataFrame,
     test_df: pl.DataFrame,
-    metric_features: list[str],
-    bool_features: list[str],
+    metric_features: Sequence[str],
+    bool_features: Sequence[str],
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fills NA values in the DataFrame.
 
     Args:
         train_df (pl.DataFrame): Train Polars DataFrame to fill NA values.
         test_df (pl.DataFrame): Validation Polars DataFrame to fill NA values.
-        metric_features (list[str]): Metric features to fill NA with median.
-        bool_features (list[str]): Boolean features to fill NA with 0.
+        metric_features (Sequence[str]): Metric features to fill NA with median.
+        bool_features (Sequence[str]): Boolean features to fill NA with 0.
 
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
@@ -252,13 +253,13 @@ def fill_na(
 
 def bind_data(
     df: pl.DataFrame,
-    thresholds: dict[str, dict[Literal["lower", "upper"], float | None]],
+    thresholds: Mapping[str, dict[Literal["lower", "upper"], float | None]],
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be filtered.
-        thresholds (dict[str, dict[Literal["lower", "upper"], float | None]]):
+        thresholds (Mapping[str, dict[Literal["lower", "upper"], float | None]]):
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
 
@@ -277,7 +278,7 @@ def bind_data(
 
 def remove_unneeded_floats(
     df: pl.DataFrame,
-    unneeded_float_features: list[str],
+    unneeded_float_features: Sequence[str],
 ) -> pl.DataFrame:
     """Convert specified float columns to integers.
 
@@ -285,7 +286,7 @@ def remove_unneeded_floats(
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.
-        unneeded_float_features (list[str]): List of column names to convert from float to int.
+        unneeded_float_features (Sequence[str]): List of column names to convert from float to int.
 
     Returns:
         pl.DataFrame: Polars DataFrame with specified columns converted to integers.
@@ -310,14 +311,14 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
 def get_dummies(
     df_train: pl.DataFrame,
     df_test: pl.DataFrame,
-    categorical_features: list[str],
+    categorical_features: Sequence[str],
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Convert categorical features to dummy variables.
 
     Args:
         df_train (pl.DataFrame): Train Polars DataFrame to be modified.
         df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-        categorical_features (list[str]): List of categorical feature names to convert.
+        categorical_features (Sequence[str]): List of categorical feature names to convert.
 
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
@@ -420,7 +421,7 @@ def fix_models(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def _matches_for_sequence(
-    models: tuple[str, ...] | chain[str], element: str, tol: int
+    models: Iterable[str], element: str, tol: int
 ) -> list[str]:
     return [
         model
