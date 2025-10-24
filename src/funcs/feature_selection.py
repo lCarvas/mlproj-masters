@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -26,16 +27,19 @@ def check_variance(df: pl.DataFrame) -> None:
         display(f"{col}: {current_column.var()}")
 
 
-def get_correlation(df: pl.DataFrame) -> pd.DataFrame:
+def get_correlation(
+    df: pl.DataFrame, metric_features: Sequence[str]
+) -> pd.DataFrame:
     """Calculates the correlation matrix of the DataFrame.
 
     Args:
         df (pl.DataFrame): The Polars DataFrame to analyze.
+        metric_features (Sequence[str]): List of numeric feature names.
 
     Returns:
         pl.DataFrame: A Polars DataFrame representing the correlation matrix.
     """
-    return df.to_pandas().corr()
+    return df.select(metric_features).to_pandas().corr()
 
 
 def corr_heatmap(corr: pd.DataFrame) -> None:
