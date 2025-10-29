@@ -331,11 +331,9 @@ def get_dummies(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    df_train = df_train.to_dummies(
-        columns=categorical_features, drop_first=True
-    )
+    df_train = df_train.to_dummies(columns=categorical_features)
 
-    df_test = df_test.to_dummies(columns=categorical_features, drop_first=True)
+    df_test = df_test.to_dummies(columns=categorical_features)
 
     all_columns: set[str] = set(df_train.columns).union(set(df_test.columns))
 
