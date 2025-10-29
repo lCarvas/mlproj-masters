@@ -1,8 +1,12 @@
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import chain
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
+import polars.selectors as cs
+
+if TYPE_CHECKING:
+    from polars._typing import PythonLiteral
 
 _MODELS: dict[str, tuple[str, ...]] = {
     "audi": (
@@ -238,17 +242,21 @@ def fill_na(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    fill_map: dict[str, object] = {
-        **{
-            feat: train_df.get_column(feat).median() for feat in metric_features
-        },
-        **dict.fromkeys(bool_features, 0),
-    }
+    for feat in metric_features:
+        train_col_median: PythonLiteral | None = train_df.get_column(
+            feat
+        ).median()
+        train_df = train_df.with_columns(
+            pl.col(feat).fill_null(train_col_median)
+        )
 
-    train_filled: pl.DataFrame = train_df.fill_null(fill_map)
-    test_filled: pl.DataFrame = test_df.fill_null(fill_map)
+        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
 
-    return train_filled, test_filled
+    for feat in bool_features:
+        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
+        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
+
+    return train_df, test_df
 
 
 def bind_data(
