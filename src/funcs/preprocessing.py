@@ -363,14 +363,22 @@ def scale_data(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    df_train_min = df_train.min().to_dict()
-    df_train_max = df_test.max().to_dict()
+    exclude_selector: cs.Selector = cs.exclude(
+        cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
+    )
+
+    df_train_min: dict[str, pl.Series] = (
+        df_train.select(exclude_selector).min().to_dict()
+    )
+    df_train_max: dict[str, pl.Series] = (
+        df_test.select(exclude_selector).max().to_dict()
+    )
 
     df_train = df_train.with_columns(
         [
             (pl.col(col) - df_train_min[col])
             / (df_train_max[col] - df_train_min[col])
-            for col in df_train.columns
+            for col in df_train.select(exclude_selector).columns
         ]
     )
 
@@ -378,7 +386,7 @@ def scale_data(
         [
             (pl.col(col) - df_train_min[col])
             / (df_train_max[col] - df_train_min[col])
-            for col in df_test.columns
+            for col in df_test.select(exclude_selector).columns
         ]
     )
 
