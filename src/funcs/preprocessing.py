@@ -262,6 +262,8 @@ def fill_na(
 def bind_data(
     df: pl.DataFrame,
     thresholds: Mapping[str, dict[Literal["lower", "upper"], float | None]],
+    *,
+    winsorize: bool = False,
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
 
@@ -270,10 +272,31 @@ def bind_data(
         thresholds (Mapping[str, dict[Literal["lower", "upper"], float | None]]):
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
+        winsorize (bool, optional): If True, values outside thresholds are set to the threshold values. Defaults to False.
 
     Returns:
         pl.DataFrame: Filtered Polars DataFrame.
     """
+    if winsorize:
+        for k, v in thresholds.items():
+            if v["lower"] is not None:
+                df = df.with_columns(
+                    pl.when(pl.col(k) < v["lower"])
+                    .then(v["lower"])
+                    .otherwise(pl.col(k))
+                    .alias(k)
+                )
+
+            if v["upper"] is not None:
+                df = df.with_columns(
+                    pl.when(pl.col(k) > v["upper"])
+                    .then(v["upper"])
+                    .otherwise(pl.col(k))
+                    .alias(k)
+                )
+
+        return df
+
     for k, v in thresholds.items():
         if v["lower"] is not None:
             df = df.filter(pl.col(k) >= v["lower"])
