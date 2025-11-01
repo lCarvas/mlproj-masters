@@ -15,7 +15,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.13.2"]
+dev = [
+    "kaggle>=1.7.4.5",
+    "ruff>=0.13.2",
+]
 
 [tool.ruff]
 line-length = 80
