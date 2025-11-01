@@ -264,11 +264,14 @@ def fill_na(
 
 def bind_data(
     df: pl.DataFrame,
-    thresholds: Mapping[str, dict[Literal["lower", "upper"], float | None]],
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
     *,
     winsorize: bool = False,
+    remove_outliers: bool = False,
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
+
+    Sets values outside thresholds to None, or winsorizes/removes them based on parameters.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be filtered.
@@ -276,6 +279,7 @@ def bind_data(
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
         winsorize (bool, optional): If True, values outside thresholds are set to the threshold values. Defaults to False.
+        remove_outliers (bool, optional): If True, rows with values outside thresholds are removed. Defaults to False.
 
     Returns:
         pl.DataFrame: Filtered Polars DataFrame.
@@ -300,12 +304,32 @@ def bind_data(
 
         return df
 
+    if remove_outliers:
+        for k, v in thresholds.items():
+            if v["lower"] is not None:
+                df = df.filter(pl.col(k) >= v["lower"])
+
+            if v["upper"] is not None:
+                df = df.filter(pl.col(k) <= v["upper"])
+
+        return df
+
     for k, v in thresholds.items():
         if v["lower"] is not None:
-            df = df.filter(pl.col(k) >= v["lower"])
+            df = df.with_columns(
+                pl.when(pl.col(k) < v["lower"])
+                .then(None)
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
         if v["upper"] is not None:
-            df = df.filter(pl.col(k) <= v["upper"])
+            df = df.with_columns(
+                pl.when(pl.col(k) > v["upper"])
+                .then(None)
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
     return df
 
