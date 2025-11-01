@@ -29,7 +29,8 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
     bool_features: Sequence[str],
     categorical_features: Sequence[str],
     thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
-    winsorize: bool = True,
+    winsorize: bool = False,
+    remove_outliers: bool = False,
     unneeded_float_features: Sequence[str],
     scaling_exclude_selector: Iterable | None = None,
 ) -> Pipeline:
@@ -100,7 +101,12 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
         (
             "bind_data",
             FunctionTransformer(
-                partial(bind_data, thresholds=thresholds, winsorize=winsorize),
+                partial(
+                    bind_data,
+                    thresholds=thresholds,
+                    winsorize=winsorize,
+                    remove_outliers=remove_outliers,
+                ),
             ),
         ),
         (
