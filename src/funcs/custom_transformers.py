@@ -66,7 +66,6 @@ class FillNATransformer(PolarsTransformerBase):
         Returns:
             pl.DataFrame: Transformed data with NA values filled.
         """
-        # pl_df, orig_type, orig_cols = self._to_polars(x)
         for feat, median in self._medians.items():
             x = x.with_columns(pl.col(feat).fill_null(median))
         for feat in self.bool_features:
