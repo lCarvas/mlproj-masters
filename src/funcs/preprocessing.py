@@ -1,4 +1,5 @@
-from collections.abc import Iterable, Mapping, Sequence
+from __future__ import annotations
+
 from itertools import chain
 from typing import TYPE_CHECKING, Literal
 
@@ -6,6 +7,8 @@ import polars as pl
 import polars.selectors as cs
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, Sequence
+
     from polars._typing import PythonLiteral
 
 _MODELS: dict[str, tuple[str, ...]] = {
@@ -390,11 +393,11 @@ def scale_data(
         cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
     )
 
-    df_train_min: dict[str, pl.Series] = (
-        df_train.select(exclude_selector).min().to_dict()
+    df_train_min: dict[str, float] = (
+        df_train.select(exclude_selector).min().to_dicts()[0]
     )
-    df_train_max: dict[str, pl.Series] = (
-        df_test.select(exclude_selector).max().to_dict()
+    df_train_max: dict[str, float] = (
+        df_test.select(exclude_selector).max().to_dicts()[0]
     )
 
     df_train = df_train.with_columns(
