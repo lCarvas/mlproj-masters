@@ -125,8 +125,7 @@ class GetDummiesTransformer(PolarsTransformerBase):
         x_dummies: pl.DataFrame = x.to_dummies(
             columns=self.categorical_features
         )
-        # add missing columns with zeros
-        all_columns: set[str] = set(self._columns or [])
+        all_columns: set[str] = set(self._columns or ())
         for col in all_columns:
             if col not in x_dummies.columns:
                 x_dummies = x_dummies.with_columns(pl.lit(0).alias(col))
