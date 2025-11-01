@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -11,6 +12,8 @@ from sklearn.feature_selection import RFE
 from sklearn.linear_model import LassoCV, LinearRegression
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from numpy.typing import NDArray
     from scipy.sparse._csr import csr_matrix
 
