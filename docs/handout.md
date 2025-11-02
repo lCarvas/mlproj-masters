@@ -158,3 +158,15 @@ representative of the best number of features for our model, it's a temporary
 random number we selected. This is a temporary step until we develop a better
 way of automating feature selection and integrating it with sklearn's pipelines.
 
+## Model
+
+As we're tackling a regression problem, for our first model we decided to go
+with a
+[Linear Regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html).
+
+### Model Selection
+
+We decided to go with the hold-out method, chosen due to its simplicity to
+implement.
+
+Currently, to evaluate model performance we're only using the MAE.
