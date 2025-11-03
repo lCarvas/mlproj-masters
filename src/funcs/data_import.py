@@ -45,16 +45,18 @@ def describe_data(
         metric_features (list[str]): List of names of metric features.
         categorical_features (list[str]): List of names of categorical features.
     """
+    display(df.describe())
+    display(df.schema)
     display(f"Duplicated: {df.is_duplicated().sum()}")
-    df_len: int = df.shape[0]
 
-    display("Missing: ")
-    for col in df.columns:
-        null_count = df.get_column(col).null_count()
-        display(f"{col}: {null_count}/{df_len} ({null_count / df_len:.2%})")
+    # df_len: int = df.shape[0]
+    # display("Missing: ")
+    # for col in df.columns:
+    #     null_count: int = df.get_column(col).null_count()
+    #     display(f"{col}: {null_count}/{df_len} ({null_count / df_len:.2%})")
 
     for col in categorical_features:
-        display(df.get_column(col).value_counts())
+        display(df.get_column(col).value_counts().transpose())
 
     for i, col in enumerate(metric_features):
         plt.figure(i)
