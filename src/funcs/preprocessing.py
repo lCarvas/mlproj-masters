@@ -262,7 +262,7 @@ def fill_na(
     return train_df, test_df
 
 
-def bind_data(
+def bind_data(  # noqa: C901
     df: pl.DataFrame,
     thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
     *,
