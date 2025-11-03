@@ -20,10 +20,11 @@ following:
 - Unrealistic values such as engine size or miles per gallon being 0. More on
   that below.
 
-Putting the obvious changes that were made to the dataset to fix the first two
-aforementioned points, to tackle the unrealistic values we decided to bind data
-in these columns to values that made sense, the value that we decided on are as
-follows:
+Putting the obvious change that was made to the dataset to fix the first point
+mentioned above aside, to tackle the unrealistic values we decided to bind the
+data to values that made sense.
+
+The values that we decided on are as follows:
 
 - Mileage:
   - Minimum: 1, since Cars 4 You is a resale company, the cars have to be used.
@@ -63,28 +64,25 @@ analysis is done.
 
 #### Boolean Features
 
-Filling with 0. The only boolean feature present in the dataset is the
-hasDamage. We can assume that if a car was checked by a mechanic, and had
-damage, it would not have been forgotten. As such filling with 0 did not seem
+Filling with 0. The only boolean feature present in the dataset is the hasDamage
+feature. We can assume that if a car was checked by a mechanic, and was damaged,
+it would not have been forgotten. As such filling with 0 did not seem
 unreasonable. Even without this assumption, every non-missing value is 0, and,
 with only 2.04% of missing values, we can safely assume that these missing
 values are much more likely to be 0 than 1.
 
 #### Categorical Features
 
-Currently doing nothing to these missing values. However, we want to first try
-filling with "Unknown". Whilst we could go with the mode of the feature, we felt
-it would be a safer approach to fill with unknown. We have not compared the
-performance of the model with these changes to the performance of the current
-model so we have yet to decide on how to proceed.
+Currently doing nothing to these missing values. In the future, we want to try
+filling with "Unknown" or the mode of the feature.
 
 ### Issues in Categorical Features
 
 The columns for the brand, model, transmission and fuel type of the car present
 spelling mistakes. Fixing brand, transmission and fuel type is easy, as the
 correct values are easy to discover. We just have to compare each of the values
-in these columns to the correct values and replace by the appropriate, corrected
-value.
+in these columns to the correct values and replace them with the appropriate,
+corrected value.
 
 The model column however, was harder to fix. There is a lot of overlap between
 models of different brands, for example the i3 from BMW and the I30 from
@@ -110,8 +108,9 @@ Thus the process is as follows:
 For this process to run as smoothly as possible, some assumptions had to be
 made, they are as follows:
 
-1. If brand is missing, models `i3` and `i8` belong to BMW. This was concluded
-   by manually looking into the dataset, and comparing the remaining features.
+1. If the brand is missing, models `i3` and `i8` belong to BMW. This was
+   concluded by manually looking into the dataset, and comparing the remaining
+   features.
 2. No more than 2 characters were removed in models. This avoids some cases of
    multiple matches, for example, if there was an entry `cl`, it will be
    replaced by `clk` and not `cl class`, `cla class` or `clc class` due to these
@@ -155,8 +154,8 @@ object from sklearn with the
 [f_regression](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.f_regression.html)
 scoring function with the number of features to select as 100. This value is not
 representative of the best number of features for our model, it's a temporary
-random number we selected. This is a temporary step until we develop a better
-way of automating feature selection and integrating it with sklearn's pipelines.
+number we selected. This is a temporary step until we develop a better way of
+automating feature selection and integrating it with sklearn's pipelines.
 
 ## Model
 
