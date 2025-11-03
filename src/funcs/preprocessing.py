@@ -1,8 +1,15 @@
-from collections.abc import Iterable, Mapping, Sequence
+from __future__ import annotations
+
 from itertools import chain
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
+import polars.selectors as cs
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, Sequence
+
+    from polars._typing import PythonLiteral
 
 _MODELS: dict[str, tuple[str, ...]] = {
     "audi": (
@@ -238,40 +245,91 @@ def fill_na(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    fill_map: dict[str, object] = {
-        **{
-            feat: train_df.get_column(feat).median() for feat in metric_features
-        },
-        **dict.fromkeys(bool_features, 0),
-    }
+    for feat in metric_features:
+        train_col_median: PythonLiteral | None = train_df.get_column(
+            feat
+        ).median()
+        train_df = train_df.with_columns(
+            pl.col(feat).fill_null(train_col_median)
+        )
 
-    train_filled: pl.DataFrame = train_df.fill_null(fill_map)
-    test_filled: pl.DataFrame = test_df.fill_null(fill_map)
+        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
 
-    return train_filled, test_filled
+    for feat in bool_features:
+        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
+        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
+
+    return train_df, test_df
 
 
-def bind_data(
+def bind_data(  # noqa: C901
     df: pl.DataFrame,
-    thresholds: Mapping[str, dict[Literal["lower", "upper"], float | None]],
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+    *,
+    winsorize: bool = False,
+    remove_outliers: bool = False,
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
+
+    Sets values outside thresholds to None, or winsorizes/removes them based on parameters.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be filtered.
         thresholds (Mapping[str, dict[Literal["lower", "upper"], float | None]]):
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
+        winsorize (bool, optional): If True, values outside thresholds are set to the threshold values. Defaults to False.
+        remove_outliers (bool, optional): If True, rows with values outside thresholds are removed. Defaults to False.
 
     Returns:
         pl.DataFrame: Filtered Polars DataFrame.
     """
+    if winsorize:
+        for k, v in thresholds.items():
+            if v["lower"] is not None:
+                df = df.with_columns(
+                    pl.when(pl.col(k) < v["lower"])
+                    .then(v["lower"])
+                    .otherwise(pl.col(k))
+                    .alias(k)
+                )
+
+            if v["upper"] is not None:
+                df = df.with_columns(
+                    pl.when(pl.col(k) > v["upper"])
+                    .then(v["upper"])
+                    .otherwise(pl.col(k))
+                    .alias(k)
+                )
+
+        return df
+
+    if remove_outliers:
+        for k, v in thresholds.items():
+            if v["lower"] is not None:
+                df = df.filter(pl.col(k) >= v["lower"])
+
+            if v["upper"] is not None:
+                df = df.filter(pl.col(k) <= v["upper"])
+
+        return df
+
     for k, v in thresholds.items():
         if v["lower"] is not None:
-            df = df.filter(pl.col(k) >= v["lower"])
+            df = df.with_columns(
+                pl.when(pl.col(k) < v["lower"])
+                .then(None)
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
         if v["upper"] is not None:
-            df = df.filter(pl.col(k) <= v["upper"])
+            df = df.with_columns(
+                pl.when(pl.col(k) > v["upper"])
+                .then(None)
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
     return df
 
@@ -323,11 +381,9 @@ def get_dummies(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    df_train = df_train.to_dummies(
-        columns=categorical_features, drop_first=True
-    )
+    df_train = df_train.to_dummies(columns=categorical_features)
 
-    df_test = df_test.to_dummies(columns=categorical_features, drop_first=True)
+    df_test = df_test.to_dummies(columns=categorical_features)
 
     all_columns: set[str] = set(df_train.columns).union(set(df_test.columns))
 
@@ -357,14 +413,22 @@ def scale_data(
     Returns:
         tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
     """
-    df_train_min = df_train.min().to_dict()
-    df_train_max = df_test.max().to_dict()
+    exclude_selector: cs.Selector = cs.exclude(
+        cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
+    )
+
+    df_train_min: dict[str, float] = (
+        df_train.select(exclude_selector).min().to_dicts()[0]
+    )
+    df_train_max: dict[str, float] = (
+        df_test.select(exclude_selector).max().to_dicts()[0]
+    )
 
     df_train = df_train.with_columns(
         [
             (pl.col(col) - df_train_min[col])
             / (df_train_max[col] - df_train_min[col])
-            for col in df_train.columns
+            for col in df_train.select(exclude_selector).columns
         ]
     )
 
@@ -372,7 +436,7 @@ def scale_data(
         [
             (pl.col(col) - df_train_min[col])
             / (df_train_max[col] - df_train_min[col])
-            for col in df_test.columns
+            for col in df_test.select(exclude_selector).columns
         ]
     )
 
@@ -538,16 +602,3 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     return df.drop("brand_from_model")
-
-
-def drop_columns(df: pl.DataFrame, columns_to_drop: set[str]) -> pl.DataFrame:
-    """Drop specified columns from the DataFrame.
-
-    Args:
-        df (pl.DataFrame): Polars DataFrame to be modified.
-        columns_to_drop (set[str]): Set of column names to drop.
-
-    Returns:
-        pl.DataFrame: Polars DataFrame with specified columns dropped.
-    """
-    return df.drop(columns_to_drop)

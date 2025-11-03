@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -6,11 +7,14 @@ import pandas as pd
 import polars as pl
 import seaborn as sns
 from IPython.display import display
+from scipy.sparse._csr import csr_matrix
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LassoCV, LinearRegression
 
 if TYPE_CHECKING:
-    from numpy import dtype, ndarray
+    from collections.abc import Sequence
+
+    from numpy.typing import NDArray
     from scipy.sparse._csr import csr_matrix
 
 
@@ -76,12 +80,10 @@ def rfe(
     for n in range(len(x_train.columns)):
         rfe = RFE(estimator=model, n_features_to_select=n + 1)
 
-        x_train_rfe: ndarray[tuple[Any, ...], dtype[Any]] = rfe.fit_transform(
+        x_train_rfe: NDArray[Any] = rfe.fit_transform(
             x_train.to_pandas(), y_train.to_pandas()
         )
-        x_val_rfe: csr_matrix | ndarray[tuple[Any, ...], dtype[Any]] = (
-            rfe.transform(x_val.to_pandas())
-        )
+        x_val_rfe: csr_matrix | NDArray[Any] = rfe.transform(x_val.to_pandas())
 
         y_train_pandas: pd.Series[int] = y_train.to_pandas()
 

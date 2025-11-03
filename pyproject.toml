@@ -9,13 +9,16 @@ dependencies = [
     "matplotlib>=3.10.6",
     "pandas>=2.3.3",
     "polars>=1.33.1",
-    "pyarrow>=21.0.0",
+    "pyarrow>=22.0.0",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.13.2"]
+dev = [
+    "kaggle>=1.7.4.5",
+    "ruff>=0.13.2",
+]
 
 [tool.ruff]
 line-length = 80
@@ -35,6 +38,8 @@ ignore = [
     'ERA001',
     "S101",
     "TD003",
+    "TRY003",
+    "T201"
 ]
 
 [tool.ruff.lint.pydocstyle]
