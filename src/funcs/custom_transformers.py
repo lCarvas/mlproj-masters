@@ -1,23 +1,25 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs
+from optunafs import FeatureSelectionResult, FeatureSelector
 from sklearn.base import BaseEstimator, TransformerMixin
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from typing import Self
 
+    import pandas as pd
     from polars._typing import PythonLiteral
 
 
-class PolarsTransformerBase(BaseEstimator, TransformerMixin):
-    """Base transformer that accepts polars/pandas/numpy and returns same type."""
+class TransformerBase(BaseEstimator, TransformerMixin):
+    """Base transformer class."""
 
 
-class FillNATransformer(PolarsTransformerBase):
+class FillNATransformer(TransformerBase):
     """Tranformer used to fill NA values.
 
     Atttributes:
@@ -73,7 +75,7 @@ class FillNATransformer(PolarsTransformerBase):
         return x
 
 
-class GetDummiesTransformer(PolarsTransformerBase):
+class GetDummiesTransformer(TransformerBase):
     """Transformer to convert categorical features into dummy variables.
 
     Attributes:
@@ -133,7 +135,7 @@ class GetDummiesTransformer(PolarsTransformerBase):
         return x_dummies.select(final_cols)
 
 
-class ScaleDataTransformer(PolarsTransformerBase):
+class ScaleDataTransformer(TransformerBase):
     """Transformer to scale data to the range [0, 1].
 
     Attributes:
@@ -205,3 +207,66 @@ class ScaleDataTransformer(PolarsTransformerBase):
                 for col in x.select(self._exclude_selector).columns
             ]
         )
+
+
+class OptunaFSTransformer(TransformerBase):
+    """Transformer to perform feature selection using OptunaFS."""
+
+    def __init__(
+        self,
+        model: BaseEstimator,
+        scoring: str,
+        cv: int,
+        optimization_direction: Literal["maximize", "minimize"],
+        n_trials: int = 100,
+    ) -> None:
+        """Initialize the FeatureSelectTransformer.
+
+        Args:
+            model (BaseEstimator): Model to use for feature selection
+            scoring (str): Scoring metric
+            cv (int): Number of cross-validation folds
+            optimization_direction (str): "maximize" or "minimize"
+            n_trials (int): Number of trials for optimization
+        """
+        self.model = model
+        self.scoring = scoring
+        self.cv = cv
+        self.optimization_direction = optimization_direction
+        self.n_trials = n_trials
+
+    def fit(self, x: pd.DataFrame, y: pd.Series) -> Self:
+        """Perform feature selection using OptunaFS.
+
+        Args:
+            x (pd.DataFrame): Input data.
+            y (pd.Series): Target variable.
+
+        Returns:
+            Self: The fitted transformer instance.
+        """
+        selector = FeatureSelector(
+            model=self.model,
+            X=x,
+            y=y,
+            scoring=self.scoring,
+            cv=self.cv,
+            optimization_direction=self.optimization_direction,
+        )
+
+        result: FeatureSelectionResult = selector.optimize(self.n_trials)
+
+        self._selected_features: list[str] = result.selected_features
+
+        return self
+
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
+        """Transform the data by selecting the best features.
+
+        Args:
+            x (pd.DataFrame): Input data.
+
+        Returns:
+            pd.DataFrame: Transformed data with selected features.
+        """
+        return x[self._selected_features]
