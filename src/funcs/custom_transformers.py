@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 import polars.selectors as cs
@@ -23,17 +23,19 @@ class FillNATransformer(TransformerBase):
     """Tranformer used to fill NA values.
 
     Atttributes:
-        metric_features (list[str]): List of metric feature names
-        bool_features (list[str]): List of boolean feature names
+        metric_features (tuple[str, ...]): List of metric feature names
+        bool_features (tuple[str, ...]): List of boolean feature names
         _medians (dict[str, Any]): Dictionary to store median values for metric features
     """
 
-    metric_features: list[str]
-    bool_features: list[str]
+    metric_features: tuple[str, ...]
+    bool_features: tuple[str, ...]
     _medians: dict[str, PythonLiteral | None]
 
     def __init__(
-        self, metric_features: Sequence[str], bool_features: Sequence[str]
+        self,
+        metric_features: Sequence[str],
+        bool_features: Sequence[str],
     ) -> None:
         """Initialize the FillNATransformer.
 
@@ -41,8 +43,8 @@ class FillNATransformer(TransformerBase):
             metric_features (Sequence[str]): Sequence of metric feature names
             bool_features (Sequence[str]): Sequence of boolean feature names
         """
-        self.metric_features = list(metric_features)
-        self.bool_features = list(bool_features)
+        self.metric_features = cast("tuple[str, ...]", metric_features)
+        self.bool_features = cast("tuple[str, ...]", bool_features)
         self._medians = {}
 
     def fit(self, x: pl.DataFrame, _y: pl.Series | None = None) -> Self:
@@ -79,11 +81,11 @@ class GetDummiesTransformer(TransformerBase):
     """Transformer to convert categorical features into dummy variables.
 
     Attributes:
-        categorical_features (list[str]): List of categorical feature names
+        categorical_features (tuple[str]): List of categorical feature names
         _columns (list[str] | None): List of all columns
     """
 
-    categorical_features: list[str]
+    categorical_features: tuple[str, ...]
     _columns: list[str] | None
 
     def __init__(self, categorical_features: Sequence[str]) -> None:
@@ -93,7 +95,9 @@ class GetDummiesTransformer(TransformerBase):
             categorical_features (Sequence[str]):
                 Sequence of categorical feature names
         """
-        self.categorical_features = list(categorical_features)
+        self.categorical_features = cast(
+            "tuple[str, ...]", categorical_features
+        )
         self._columns = None
 
     def fit(self, x: pl.DataFrame, _y: pl.Series | None = None) -> Self:
