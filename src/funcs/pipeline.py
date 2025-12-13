@@ -4,11 +4,14 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
+from sklearn.feature_selection import RFECV
 from sklearn.pipeline import FunctionTransformer, Pipeline
 
 from funcs.custom_transformers import (
+    ConstantVarianceRemover,
     FillNATransformer,
     GetDummiesTransformer,
+    HighCorrelationRemover,
     ScaleDataTransformer,
 )
 from funcs.preprocessing import (
@@ -21,6 +24,8 @@ from funcs.preprocessing import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
+
+    from sklearn.base import BaseEstimator
 
 
 def build_preprocessing_pipeline(  # noqa: PLR0913
@@ -132,6 +137,35 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
             "scale_data",
             ScaleDataTransformer(exclude_selector=scaling_exclude_selector),
         ),
+    )
+    return Pipeline(steps)
+
+
+def build_feature_selection_pipeline(
+    threshold: float,
+    estimator: BaseEstimator,
+    min_features_to_select: int,
+    cv: int,
+) -> Pipeline:
+    """Build a sklearn Pipeline for feature selection.
+
+    Returns an sklearn.pipeline.Pipeline instance.
+    """
+    steps: tuple[Any, ...] = (
+        ("constant_variance_filter", ConstantVarianceRemover()),
         ("to_pandas", FunctionTransformer(lambda x: x.to_pandas())),
+        (
+            "high_correlation_filter",
+            HighCorrelationRemover(threshold=threshold),
+        ),
+        (
+            "rfe",
+            RFECV(
+                estimator=estimator,
+                min_features_to_select=min_features_to_select,
+                cv=cv,
+                n_jobs=-1,
+            ),
+        ),
     )
     return Pipeline(steps)

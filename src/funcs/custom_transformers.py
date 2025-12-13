@@ -2,14 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+import numpy as np
 import polars as pl
 import polars.selectors as cs
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.feature_selection import RFE
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from typing import Self
 
+    import pandas as pd
     from polars._typing import PythonLiteral
 
 
@@ -50,7 +53,8 @@ class FillNATransformer(TransformerBase):
 
         Args:
             x (pl.DataFrame): Input data.
-            _y (pl.Series | None, optional): Target variable. Defaults to None.
+            _y (pl.Series | None, optional):
+                Ignored, present for sklearn compatibility. Defaults to None.
 
         Returns:
             Self: The fitted transformer instance.
@@ -106,7 +110,7 @@ class GetDummiesTransformer(TransformerBase):
         Args:
             x (pl.DataFrame): Input data.
             _y (pl.Series | None, optional):
-                Target Variable Series. Defaults to None.
+                Ignored, present for sklearn compatibility. Defaults to None.
 
         Returns:
             Self: The fitted transformer instance.
@@ -176,7 +180,7 @@ class ScaleDataTransformer(TransformerBase):
         Args:
             x (pl.DataFrame): Input data.
             _y (pl.Series | None, optional):
-                Target Variable Series. Defaults to None.
+                Ignored, present for sklearn compatibility. Defaults to None.
 
         Returns:
             Self: The fitted transformer instance.
@@ -209,3 +213,150 @@ class ScaleDataTransformer(TransformerBase):
                 for col in x.select(self._exclude_selector).columns
             ]
         )
+
+
+class ConstantVarianceRemover(TransformerBase):
+    """Transformer to remove features with constant variance.
+
+    Attributes:
+        _constant_variance_features (list[str]): List of features with constant variance
+    """
+
+    _constant_variance_features: list[str]
+
+    def __init__(self) -> None:
+        """Initialize the ConstantVarianceRemover."""
+        self._constant_variance_features = []
+
+    def fit(
+        self,
+        x: pl.DataFrame,
+        _y: pl.Series | None = None,
+    ) -> Self:
+        """Fit the transformer by identifying constant variance features.
+
+        Args:
+            x (pl.DataFrame): Input data.
+            _y (pl.Series | None, optional):
+                Ignored, present for sklearn compatibility. Defaults to None.
+
+        Returns:
+            Self: The fitted transformer instance
+        """
+        for col in x.columns:
+            if x.get_column(col).n_unique() <= 1:
+                self._constant_variance_features.append(col)
+        return self
+
+    def transform(self, x: pl.DataFrame) -> pl.DataFrame:
+        """Transform the data by removing constant variance features.
+
+        Args:
+            x (pl.DataFrame): Input data.
+
+        Returns:
+            pl.DataFrame: Transformed data with constant variance features removed.
+        """
+        return x.select(cs.exclude(self._constant_variance_features))
+
+
+class HighCorrelationRemover(TransformerBase):
+    """Transformer to remove highly correlated features.
+
+    Attributes:
+        threshold (float): Correlation threshold for feature removal
+        _features_to_remove (list[str]): List of features to be removed
+    """
+
+    threshold: float
+    _features_to_remove: list[str]
+
+    def __init__(self, threshold: float = 0.8) -> None:
+        """Initialize the HighCorrelationRemover.
+
+        Args:
+            threshold (float, optional): Correlation threshold for feature removal.
+                Defaults to 0.8.
+        """
+        self.threshold = threshold
+        self._features_to_remove = []
+
+    def fit(
+        self,
+        x: pd.DataFrame,
+        _y: pd.Series | None = None,
+    ) -> Self:
+        """Fit the transformer by identifying highly correlated features.
+
+        Args:
+            x (pl.DataFrame): Input data.
+            _y (pl.Series | None, optional):
+                Ignored, present for sklearn compatibility. Defaults to None.
+
+        Returns:
+            Self: The fitted transformer instance
+        """
+        corr_matrix: pd.DataFrame = x.corr("spearman").abs()
+        upper_triangle: pd.DataFrame = corr_matrix.where(
+            np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
+        )
+        for column in upper_triangle.columns:
+            if any(upper_triangle[column] > self.threshold):
+                self._features_to_remove.append(column)
+        return self
+
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
+        """Transform the data by removing highly correlated features.
+
+        Args:
+            x (pl.DataFrame): Input data.
+
+        Returns:
+            pl.DataFrame: Transformed data with highly correlated features removed.
+        """
+        # return x.select(cs.exclude(self._features_to_remove))
+        return x.loc[:, ~x.columns.isin(self._features_to_remove)]
+
+
+class IterativeRFE(TransformerBase):
+    """Transformer to perform iterative recursive feature elimination (RFE).
+
+    Attributes:
+        estimator (BaseEstimator): Estimator used for feature importance
+        _selected_features (list[str]): List of selected features after fitting
+    """
+
+    estimator: BaseEstimator
+    _selected_features: list[str]
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+    ) -> None:
+        """Initialize the IterativeRFE.
+
+        Args:
+            estimator (BaseEstimator): Estimator used for feature importance
+            n_features_to_select (int): Number of features to select
+        """
+        self.estimator = estimator
+        self._selected_features = []
+
+    def fit(
+        self,
+        x: pd.DataFrame,
+        y: pd.Series,
+    ) -> Self:
+        """Fit the transformer by performing iterative RFE.
+
+        Args:
+            x (pd.DataFrame): Input data.
+            y (pd.Series): Target variable.
+
+        Returns:
+            Self: The fitted transformer instance
+        """
+        rfe = RFE(estimator=self.estimator)
+        rfe.fit(x, y)
+        self._selected_features = x.columns[rfe.support_].tolist()
+        return self
