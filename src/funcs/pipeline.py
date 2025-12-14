@@ -4,7 +4,6 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
-from sklearn.feature_selection import RFECV
 from sklearn.pipeline import FunctionTransformer, Pipeline
 
 from funcs.custom_transformers import (
@@ -144,8 +143,6 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
 def build_feature_selection_pipeline(
     threshold: float,
     estimator: BaseEstimator,
-    min_features_to_select: int,
-    cv: int,
 ) -> Pipeline:
     """Build a sklearn Pipeline for feature selection.
 
@@ -158,14 +155,6 @@ def build_feature_selection_pipeline(
             "high_correlation_filter",
             HighCorrelationRemover(threshold=threshold),
         ),
-        (
-            "rfe",
-            RFECV(
-                estimator=estimator,
-                min_features_to_select=min_features_to_select,
-                cv=cv,
-                n_jobs=-1,
-            ),
-        ),
+        # Need something here, rfe, selectfrommodel, idk man this is annoying
     )
     return Pipeline(steps)
