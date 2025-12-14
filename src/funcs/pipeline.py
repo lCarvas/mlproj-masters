@@ -4,6 +4,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
+from sklearn.feature_selection import SelectFromModel
 from sklearn.pipeline import FunctionTransformer, Pipeline
 
 from funcs.custom_transformers import (
@@ -156,5 +157,9 @@ def build_feature_selection_pipeline(
             HighCorrelationRemover(threshold=threshold),
         ),
         # Need something here, rfe, selectfrommodel, idk man this is annoying
+        (
+            "feature_selector",
+            SelectFromModel(estimator=estimator),
+        ),
     )
     return Pipeline(steps)
