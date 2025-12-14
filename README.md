@@ -8,17 +8,17 @@
 
 ## Installation Guide
 
-This project is managed with [uv](https://github.com/astral-sh/uv), pip can still
-be used but uv is recommended.
+This project is managed with [uv](https://github.com/astral-sh/uv), pip can
+still be used but uv is recommended.
 
 If using uv:
 
-```powershell
+```bash
 uv sync
 ```
 
 If using pip:
 
-```powershell
+```bash
 pip install -r requirements.txt
 ```
