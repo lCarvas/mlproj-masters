@@ -39,6 +39,8 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
     remove_outliers: bool = False,
     unneeded_float_features: Sequence[str],
     scaling_exclude_selector: Iterable | None = None,
+    max_len_tolerance: int = 2,
+    columns_to_coalesce: Sequence[str],
 ) -> Pipeline:
     """Build a sklearn Pipeline composed of the custom Polars-based transformers.
 
@@ -101,9 +103,27 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
                 )
             ),
         ),
-        ("fix_models", FunctionTransformer(fix_models)),
+        (
+            "fix_models",
+            FunctionTransformer(
+                partial(
+                    fix_models,
+                    max_len_tolerance=max_len_tolerance,
+                    is_second_pass=False,
+                )
+            ),
+        ),
         ("fix_no_brand_models", FunctionTransformer(fix_no_brand_models)),
-        ("fix_models_2nd_pass", FunctionTransformer(fix_models)),
+        (
+            "fix_models_2nd_pass",
+            FunctionTransformer(
+                partial(
+                    fix_models,
+                    max_len_tolerance=max_len_tolerance,
+                    is_second_pass=True,
+                )
+            ),
+        ),
         (
             "bind_data",
             FunctionTransformer(
