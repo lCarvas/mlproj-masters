@@ -38,26 +38,32 @@ def describe_data(
     metric_features: list[str],
     categorical_features: list[str],
 ) -> None:
-    """Prints the number of duplicated rows and the count and percentage of missing values for each column in the DataFrame.
+    """Prints DataFrame info and plots metric features as histograms and violin+boxplots."""
 
-    Args:
-        df (pl.DataFrame): The Polars DataFrame to analyze.
-        metric_features (list[str]): List of names of metric features.
-        categorical_features (list[str]): List of names of categorical features.
-    """
     display(df.describe())
     display(df.schema)
-    display(f"Duplicated: {df.is_duplicated().sum()}")
-
-    # df_len: int = df.shape[0]
-    # display("Missing: ")
-    # for col in df.columns:
-    #     null_count: int = df.get_column(col).null_count()
-    #     display(f"{col}: {null_count}/{df_len} ({null_count / df_len:.2%})")
-
+    display(f"Duplicated rows: {df.is_duplicated().sum()}")
     for col in categorical_features:
         display(df.get_column(col).value_counts().transpose())
-
+    n_features = len(metric_features)
+    ncols = 6
+    nrows = (n_features + ncols - 1) // ncols  
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(4*ncols, 3*nrows))
+    axes = axes.flatten() 
     for i, col in enumerate(metric_features):
-        plt.figure(i)
-        sns.boxplot(x=col, data=df)
+        axes[i].hist(df[col].drop_nulls().to_numpy(), bins=30, color='skyblue', edgecolor='black')
+        axes[i].set_title(col)
+    for j in range(i+1, len(axes)):
+        axes[j].axis('off')
+    plt.tight_layout()
+    plt.show()
+    fig2, axes2 = plt.subplots(nrows=nrows, ncols=ncols, figsize=(4*ncols, 3*nrows))
+    axes2 = axes2.flatten()
+    for i, col in enumerate(metric_features):
+        axes2[i].violinplot(df[col].drop_nulls().to_numpy(), vert=False)
+        axes2[i].boxplot(df[col].drop_nulls().to_numpy(), vert=False)
+        axes2[i].set_title(col)
+    for j in range(i+1, len(axes2)):
+        axes2[j].axis('off')
+    plt.tight_layout()
+    plt.show()
