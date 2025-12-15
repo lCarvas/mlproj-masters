@@ -24,9 +24,9 @@ class TransformerBase(BaseEstimator, TransformerMixin):
 
 
 class FillNATransformer(TransformerBase):
-    """Tranformer used to fill NA values.
+    """Transformer used to fill NA values.
 
-    Atttributes:
+    Attributes:
         metric_features (tuple[str, ...]): List of metric feature names
         bool_features (tuple[str, ...]): List of boolean feature names
         _medians (dict[str, Any]): Dictionary to store median values for metric features
