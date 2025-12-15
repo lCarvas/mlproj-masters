@@ -16,6 +16,7 @@ from funcs.custom_transformers import (
 )
 from funcs.preprocessing import (
     bind_data,
+    coalesce_null_columns,
     fix_data,
     fix_models,
     fix_no_brand_models,
@@ -132,6 +133,15 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
         (
             "get_dummies",
             GetDummiesTransformer(categorical_features=categorical_features),
+        ),
+        (
+            "coalesce_null_unknown",
+            FunctionTransformer(
+                partial(
+                    coalesce_null_columns,
+                    columns=columns_to_coalesce,
+                )
+            ),
         ),
         (
             "scale_data",

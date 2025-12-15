@@ -649,3 +649,36 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     return df.drop("brand_from_model")
+
+
+def coalesce_null_columns(
+    df: pl.DataFrame,
+    columns: Sequence[str],
+) -> pl.DataFrame:
+    """Coalesce multiple columns into a single column, taking the first non-null value.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+        columns (Sequence[str]):
+            List of column names to coalesce their null and unknown columns.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with the new coalesced column.
+    """
+    for col in columns:
+        unknown_col: str = f"{col}_unknown"
+        null_col: str = f"{col}_null"
+
+        has_unknown: bool = unknown_col in df.columns
+        has_null: bool = null_col in df.columns
+
+        if has_unknown and has_null:
+            df = df.with_columns(
+                pl.coalesce(pl.col(unknown_col), pl.col(null_col)).alias(
+                    unknown_col
+                )
+            )
+            df = df.drop(null_col)
+        elif has_null and not has_unknown:
+            df = df.rename({f"{col}_null": f"{col}_unknown"})
+    return df
