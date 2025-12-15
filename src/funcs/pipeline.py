@@ -4,7 +4,6 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
-from sklearn.feature_selection import SelectFromModel
 from sklearn.pipeline import FunctionTransformer, Pipeline
 
 from funcs.custom_transformers import (
@@ -12,6 +11,7 @@ from funcs.custom_transformers import (
     FillNATransformer,
     GetDummiesTransformer,
     HighCorrelationRemover,
+    PermutationImportanceSelector,
     ScaleDataTransformer,
 )
 from funcs.preprocessing import (
@@ -174,6 +174,9 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
 def build_feature_selection_pipeline(
     threshold: float,
     estimator: BaseEstimator,
+    n_repeats: int = 10,
+    scoring: str | Sequence[str] | None = None,
+    importance_threshold: float = 0.05,
 ) -> Pipeline:
     """Build a sklearn Pipeline for feature selection.
 
@@ -186,10 +189,14 @@ def build_feature_selection_pipeline(
             "high_correlation_filter",
             HighCorrelationRemover(threshold=threshold),
         ),
-        # Need something here, rfe, selectfrommodel, idk man this is annoying
         (
             "feature_selector",
-            SelectFromModel(estimator=estimator),
+            PermutationImportanceSelector(
+                estimator=estimator,
+                n_repeats=n_repeats,
+                scoring=scoring,
+                importance_threshold=importance_threshold,
+            ),
         ),
     )
     return Pipeline(steps)

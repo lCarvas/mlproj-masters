@@ -5,15 +5,18 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import polars as pl
 import polars.selectors as cs
+from sklearn import clone
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import RFE
+from sklearn.inspection import permutation_importance
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from typing import Self
 
     import pandas as pd
+    from numpy.typing import NDArray
     from polars._typing import PythonLiteral
+    from sklearn.utils import Bunch
 
 
 class TransformerBase(BaseEstimator, TransformerMixin):
@@ -314,49 +317,112 @@ class HighCorrelationRemover(TransformerBase):
         Returns:
             pl.DataFrame: Transformed data with highly correlated features removed.
         """
-        # return x.select(cs.exclude(self._features_to_remove))
         return x.loc[:, ~x.columns.isin(self._features_to_remove)]
 
 
-class IterativeRFE(TransformerBase):
-    """Transformer to perform iterative recursive feature elimination (RFE).
+class PermutationImportanceSelector(TransformerBase):
+    """Feature selector using permutation importance.
+
+       Fits the estimator, calculates permutation importance for each feature,
+       and selects features with importance above the mean.
 
     Attributes:
-        estimator (BaseEstimator): Estimator used for feature importance
-        _selected_features (list[str]): List of selected features after fitting
+        estimator (BaseEstimator):
+            Sklearn estimator to use for calculating feature importance.
+        n_repeats (int): Number of times to permute each feature.
+        random_state (int): Random state for reproducibility.
+        scoring (str | Sequence[str] | None):
+            Scoring metric to use. If None, uses estimator's default score.
+        importance_threshold (float | None): Threshold used for feature selection.
+            If None the mean of feature importances will be used.
+        _estimator (BaseEstimator):
+            Fitted estimator used for importance calculation.
+        _selected_features (list[str]): Boolean mask of selected features.
     """
 
     estimator: BaseEstimator
-    _selected_features: list[str]
+    n_repeats: int
+    random_state: int
+    scoring: str | Sequence[str] | None
+    importance_threshold: float | None
+    _estimator: BaseEstimator
+    _selected_features: NDArray[np.bool]
 
     def __init__(
         self,
         estimator: BaseEstimator,
+        n_repeats: int = 10,
+        random_state: int = 42,
+        scoring: str | Sequence[str] | None = None,
+        importance_threshold: float | None = None,
     ) -> None:
-        """Initialize the IterativeRFE.
+        """Initialize the PermutationImportanceSelector.
 
         Args:
-            estimator (BaseEstimator): Estimator used for feature importance
-            n_features_to_select (int): Number of features to select
+            estimator (BaseEstimator):
+                sklearn estimator to use for calculating feature importance.
+            n_repeats (int, optional):
+                Number of times to permute each feature. Defaults to 10.
+            random_state (int, optional):
+                Random state for reproducibility. Defaults to 42.
+            scoring (str | Sequence[str] | None, optional):
+                Scoring metric to use. If None, uses estimator's default score.
+                Defaults to None.
+            importance_threshold (float, optional):
+                Threshold used for feature selection.
+                If None the mean of feature importances will be used.
+                Defaults to None.
         """
         self.estimator = estimator
-        self._selected_features = []
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+        self.scoring = scoring
+        self.importance_threshold = importance_threshold
 
     def fit(
         self,
         x: pd.DataFrame,
         y: pd.Series,
     ) -> Self:
-        """Fit the transformer by performing iterative RFE.
+        """Fit the transformer by calculating permutation importance.
 
         Args:
             x (pd.DataFrame): Input data.
             y (pd.Series): Target variable.
 
         Returns:
-            Self: The fitted transformer instance
+            Self: The fitted transformer instance.
         """
-        rfe = RFE(estimator=self.estimator)
-        rfe.fit(x, y)
-        self._selected_features = x.columns[rfe.support_].tolist()
+        self._estimator = clone(self.estimator)
+        self._estimator.fit(x, y)  # pyright: ignore[reportAttributeAccessIssue]
+
+        result: Bunch | dict[str, Bunch] = permutation_importance(
+            self._estimator,
+            x,
+            y,
+            n_repeats=self.n_repeats,
+            random_state=self.random_state,
+            scoring=self.scoring,
+        )
+
+        mean_importance: Bunch = result["importances_mean"]
+
+        if self.importance_threshold is None:
+            self.importance_threshold = mean_importance.mean()
+
+        self._selected_features = cast(
+            "NDArray[np.float64]", mean_importance
+        ) >= cast("float", self.importance_threshold)
+
         return self
+
+    def transform(self, x: pd.DataFrame) -> pd.DataFrame:
+        """Transform the data by selecting important features.
+
+        Args:
+            x (pd.DataFrame): Input data.
+
+        Returns:
+            pd.DataFrame: Transformed data with selected features.
+        """
+        return x.loc[:, self._selected_features]
