@@ -262,7 +262,7 @@ def fill_na(
     return train_df, test_df
 
 
-def bind_data(  # noqa: C901
+def bind_data(
     df: pl.DataFrame,
     thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
     *,
@@ -285,35 +285,54 @@ def bind_data(  # noqa: C901
         pl.DataFrame: Filtered Polars DataFrame.
     """
     if winsorize:
-        for k, v in thresholds.items():
-            if v["lower"] is not None:
-                df = df.with_columns(
-                    pl.when(pl.col(k) < v["lower"])
-                    .then(v["lower"])
-                    .otherwise(pl.col(k))
-                    .alias(k)
-                )
-
-            if v["upper"] is not None:
-                df = df.with_columns(
-                    pl.when(pl.col(k) > v["upper"])
-                    .then(v["upper"])
-                    .otherwise(pl.col(k))
-                    .alias(k)
-                )
-
-        return df
-
+        return _winsorize_bind(df, thresholds)
     if remove_outliers:
-        for k, v in thresholds.items():
-            if v["lower"] is not None:
-                df = df.filter(pl.col(k) >= v["lower"])
+        return _remove_outlier_rows_bind(df, thresholds)
+    return _null_outside_bind(df, thresholds)
 
-            if v["upper"] is not None:
-                df = df.filter(pl.col(k) <= v["upper"])
 
-        return df
+def _winsorize_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
+    for k, v in thresholds.items():
+        if v["lower"] is not None:
+            df = df.with_columns(
+                pl.when(pl.col(k) < v["lower"])
+                .then(v["lower"])
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
+        if v["upper"] is not None:
+            df = df.with_columns(
+                pl.when(pl.col(k) > v["upper"])
+                .then(v["upper"])
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
+
+    return df
+
+
+def _remove_outlier_rows_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
+    for k, v in thresholds.items():
+        if v["lower"] is not None:
+            df = df.filter(pl.col(k) >= v["lower"])
+
+        if v["upper"] is not None:
+            df = df.filter(pl.col(k) <= v["upper"])
+
+    return df
+
+
+def _null_outside_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
     for k, v in thresholds.items():
         if v["lower"] is not None:
             df = df.with_columns(
