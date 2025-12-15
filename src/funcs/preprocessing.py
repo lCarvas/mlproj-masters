@@ -468,11 +468,20 @@ def fix_data(
     )
 
 
-def fix_models(df: pl.DataFrame) -> pl.DataFrame:
+def fix_models(
+    df: pl.DataFrame,
+    *,
+    max_len_tolerance: int = 2,
+    is_second_pass: bool = False,
+) -> pl.DataFrame:
     """Fix model names in the DataFrame.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.
+        max_len_tolerance (int, optional):
+            Max len difference between element and actual model. Defaults to 2.
+        is_second_pass (bool, optional):
+            Whether this is a second pass for fixing models. Defaults to False.
 
     Returns:
         pl.DataFrame: Polars DataFrame with fixed model names.
@@ -482,7 +491,12 @@ def fix_models(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(
         pl.struct(["model", "Brand"])
         .map_elements(
-            lambda x: _fix_model_spelling(x["model"], x["Brand"]),
+            lambda x: _fix_model_spelling(
+                x["model"],
+                x["Brand"],
+                max_len_tolerance=max_len_tolerance,
+                is_second_pass=is_second_pass,
+            ),
             return_dtype=pl.String,
         )
         .alias("model")
@@ -509,15 +523,21 @@ def _search_all_matches(element: str, tol: int) -> list[str]:
     )
 
 
-def _resolve_brand(element: str, brand: str, tol: int) -> str:
+def _resolve_brand(
+    element: str, brand: str, tol: int, *, is_second_pass: bool
+) -> str:
     matches: list[str] = _search_brand_matches(brand, element, tol)
 
     if len(matches) > 1:
         if element in {"viva", "mokka", "verso", "golf", "ka"}:
             return element
+        if is_second_pass:
+            return "unknown"
         return element + "::multiple"
     if len(matches) == 1:
         return matches[0]
+    if is_second_pass:
+        return "unknown"
     return element + "::none"
 
 
@@ -538,14 +558,20 @@ def _resolve_no_brand(element: str, tol: int) -> str:
 
 
 def _fix_model_spelling(
-    element: str | None, brand: str | None, *, max_len_tolerance: int = 2
+    element: str | None,
+    brand: str | None,
+    *,
+    max_len_tolerance: int = 2,
+    is_second_pass: bool,
 ) -> str | None:
     """Fix model spelling for a given element and brand.
 
     Args:
         element (str): The model name to be checked and fixed.
         brand (str | None): The brand name associated with the element.
-        max_len_tolerance (int, optional): Max len difference between element and actual model. Defaults to 2.
+        max_len_tolerance (int, optional):
+            Max len difference between element and actual model. Defaults to 2.
+        is_second_pass (bool): Whether this is a second pass for fixing models.
 
     Returns:
         str: The fixed model name or the original element with appropriate suffixes if applicable.
@@ -557,7 +583,9 @@ def _fix_model_spelling(
         element = "ka"
 
     if brand:
-        return _resolve_brand(element, brand, max_len_tolerance)
+        return _resolve_brand(
+            element, brand, max_len_tolerance, is_second_pass=is_second_pass
+        )
 
     return _resolve_no_brand(element, max_len_tolerance)
 
