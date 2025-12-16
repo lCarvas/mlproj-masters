@@ -176,7 +176,7 @@ def build_feature_selection_pipeline(
     estimator: BaseEstimator,
     # n_repeats: int = 10,
     # scoring: str | Sequence[str] | None = None,
-    # importance_threshold: float = 0.05,
+    importance_threshold: float | None = 0.05,
 ) -> Pipeline:
     """Build a sklearn Pipeline for feature selection.
 
@@ -198,6 +198,11 @@ def build_feature_selection_pipeline(
         #         importance_threshold=importance_threshold,
         #     ),
         # ),
-        ("feature_selector", SelectFromModel(estimator=estimator)),
+        (
+            "feature_selector",
+            SelectFromModel(
+                estimator=estimator, threshold=importance_threshold
+            ),
+        ),
     )
     return Pipeline(steps)
