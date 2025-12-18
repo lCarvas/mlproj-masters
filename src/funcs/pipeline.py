@@ -12,6 +12,7 @@ from funcs.custom_transformers import (
     FillNATransformer,
     GetDummiesTransformer,
     HighCorrelationRemover,
+    PermutationImportanceSelector,
     ScaleDataTransformer,
 )
 from funcs.preprocessing import (
@@ -172,10 +173,8 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
 
 
 def build_feature_selection_pipeline(
-    threshold: float,
+    corr_threshold: float,
     estimator: BaseEstimator,
-    # n_repeats: int = 10,
-    # scoring: str | Sequence[str] | None = None,
     importance_threshold: float | None = 0.05,
 ) -> Pipeline:
     """Build a sklearn Pipeline for feature selection.
@@ -187,21 +186,43 @@ def build_feature_selection_pipeline(
         ("to_pandas", FunctionTransformer(lambda x: x.to_pandas())),
         (
             "high_correlation_filter",
-            HighCorrelationRemover(threshold=threshold),
+            HighCorrelationRemover(threshold=corr_threshold),
         ),
-        # (
-        #     "feature_selector",
-        #     PermutationImportanceSelector(
-        #         estimator=estimator,
-        #         n_repeats=n_repeats,
-        #         scoring=scoring,
-        #         importance_threshold=importance_threshold,
-        #     ),
-        # ),
         (
             "feature_selector",
             SelectFromModel(
                 estimator=estimator, threshold=importance_threshold
+            ),
+        ),
+    )
+    return Pipeline(steps)
+
+
+def build_permutation_feature_selection_pipeline(
+    corr_threshold: float,
+    estimator: BaseEstimator,
+    n_repeats: int = 10,
+    scoring: str | Sequence[str] | None = None,
+    importance_threshold: float | None = 0.05,
+) -> Pipeline:
+    """Build a sklearn Pipeline for feature selection with permutation importance.
+
+    Returns an sklearn.pipeline.Pipeline instance.
+    """
+    steps: tuple[tuple[str, Any], ...] = (
+        ("constant_variance_filter", ConstantVarianceRemover()),
+        ("to_pandas", FunctionTransformer(lambda x: x.to_pandas())),
+        (
+            "high_correlation_filter",
+            HighCorrelationRemover(threshold=corr_threshold),
+        ),
+        (
+            "feature_selector",
+            PermutationImportanceSelector(
+                estimator=estimator,
+                n_repeats=n_repeats,
+                scoring=scoring,
+                importance_threshold=importance_threshold,
             ),
         ),
     )

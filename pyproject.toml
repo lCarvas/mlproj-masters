@@ -43,6 +43,10 @@ ignore = [
     "TRY003",
     "T201"
 ]
+unfixable = ["F401"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 84
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
