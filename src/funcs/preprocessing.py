@@ -243,7 +243,8 @@ def fill_na(
         bool_features (Sequence[str]): Boolean features to fill NA with 0.
 
     Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
+        tuple[pl.DataFrame, pl.DataFrame]:
+            Tuple containing the modified train and validation DataFrames.
     """
     for feat in metric_features:
         train_col_median: PythonLiteral | None = train_df.get_column(
@@ -271,15 +272,19 @@ def bind_data(
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
 
-    Sets values outside thresholds to None, or winsorizes/removes them based on parameters.
+    Sets values outside thresholds to None, or winsorizes/removes them.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be filtered.
         thresholds (Mapping[str, dict[Literal["lower", "upper"], float | None]]):
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
-        winsorize (bool, optional): If True, values outside thresholds are set to the threshold values. Defaults to False.
-        remove_outliers (bool, optional): If True, rows with values outside thresholds are removed. Defaults to False.
+        winsorize (bool, optional):
+            If True, values outside thresholds are set to the threshold values.
+            Defaults to False.
+        remove_outliers (bool, optional):
+            If True, rows with values outside thresholds are removed.
+            Defaults to False.
 
     Returns:
         pl.DataFrame: Filtered Polars DataFrame.
@@ -359,14 +364,16 @@ def remove_unneeded_floats(
 ) -> pl.DataFrame:
     """Convert specified float columns to integers.
 
-    This only strips the decimal part of the float, it does not round the values.
+    This strips the decimal part of the float, it does not round the values.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.
-        unneeded_float_features (Sequence[str]): List of column names to convert from float to int.
+        unneeded_float_features (Sequence[str]):
+            List of column names to convert from float to int.
 
     Returns:
-        pl.DataFrame: Polars DataFrame with specified columns converted to integers.
+        pl.DataFrame:
+            Polars DataFrame with specified columns converted to integers.
     """
     for col in unneeded_float_features:
         df = df.with_columns(pl.col(col).cast(pl.Int64))
@@ -395,10 +402,12 @@ def get_dummies(
     Args:
         df_train (pl.DataFrame): Train Polars DataFrame to be modified.
         df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-        categorical_features (Sequence[str]): List of categorical feature names to convert.
+        categorical_features (Sequence[str]):
+            List of categorical feature names to convert.
 
     Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
+        tuple[pl.DataFrame, pl.DataFrame]:
+            Tuple containing the modified train and validation DataFrames.
     """
     df_train = df_train.to_dummies(columns=categorical_features)
 
@@ -430,7 +439,8 @@ def scale_data(
         df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
 
     Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
+        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train
+        and validation DataFrames.
     """
     exclude_selector: cs.Selector = cs.exclude(
         cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
@@ -593,7 +603,8 @@ def _fix_model_spelling(
         is_second_pass (bool): Whether this is a second pass for fixing models.
 
     Returns:
-        str: The fixed model name or the original element with appropriate suffixes if applicable.
+        str: The fixed model name or the original element with appropriate
+        suffixes if applicable.
     """
     if element is None:
         return element
@@ -655,7 +666,7 @@ def coalesce_null_columns(
     df: pl.DataFrame,
     columns: Sequence[str],
 ) -> pl.DataFrame:
-    """Coalesce multiple columns into a single column, taking the first non-null value.
+    """Coalesce "null" and "unknown" columns, taking the first non-null value.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.

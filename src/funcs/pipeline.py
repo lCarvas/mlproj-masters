@@ -43,7 +43,7 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
     max_len_tolerance: int = 2,
     columns_to_coalesce: Sequence[str],
 ) -> Pipeline:
-    """Build a sklearn Pipeline composed of the custom Polars-based transformers.
+    """Build a sklearn Pipeline composed of custom Polars-based transformers.
 
     Returns an sklearn.pipeline.Pipeline instance.
     """
@@ -205,7 +205,9 @@ def build_permutation_feature_selection_pipeline(
     scoring: str | Sequence[str] | None = None,
     importance_threshold: float | None = 0.05,
 ) -> Pipeline:
-    """Build a sklearn Pipeline for feature selection with permutation importance.
+    """Build a sklearn Pipeline for feature selection.
+
+    Uses permutation importance instead of SelectFromModel.
 
     Returns an sklearn.pipeline.Pipeline instance.
     """

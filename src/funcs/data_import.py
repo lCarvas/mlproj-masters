@@ -18,7 +18,7 @@ def import_data(file_path: str) -> pl.DataFrame:
 
 
 def column_types(df: pl.DataFrame) -> dict[str, str]:
-    """Returns a dictionary with column names as keys and their data types as values.
+    """Returns a dictionary with column names and their data types.
 
     Args:
         df (pl.DataFrame): The Polars DataFrame to analyze.
@@ -37,7 +37,16 @@ def describe_data(
     metric_features: list[str],
     categorical_features: list[str],
 ) -> None:
-    """Prints DataFrame info and plots metric features as histograms and violin+boxplots."""
+    """Displays DataFrame info.
+
+    Displays information about the DataFrame and plots metric features as
+    histograms and violin + boxplots.
+
+    Args:
+    df (pl.DataFrame): The Polars DataFrame to analyze.
+    metric_features (list[str]): List of names of metric features.
+    categorical_features (list[str]): List of names of categorical features.
+    """
     display(df.describe())
     display(df.schema)
     display(f"Duplicated rows: {df.is_duplicated().sum()}")
