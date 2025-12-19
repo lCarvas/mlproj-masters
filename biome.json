@@ -1,0 +1,18 @@
+{
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded"
+    }
+  },
+  "html": {
+    "parser": {
+      "interpolation": true
+    }
+  }
+}

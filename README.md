@@ -11,14 +11,18 @@
 This project is managed with [uv](https://github.com/astral-sh/uv), pip can
 still be used but uv is recommended.
 
-If using uv:
+1. Run the following from the root of the repository:
 
-```bash
-uv sync
-```
+   ```bash
+   # If using uv:
+   uv sync
 
-If using pip:
+   # Or, if you don't have uv, create a virtual environment, then run
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+1. To start the predictions interface, run:
+
+   ```bash
+   poe serve
+   ```

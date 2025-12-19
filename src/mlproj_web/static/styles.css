@@ -1,0 +1,247 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #09090b;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  background: #18181b;
+  border: 1px, solid, #ffffff1a;
+  border-radius: calc(0.625rem + 4px);
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+}
+
+h1 {
+  color: #ffffff;
+  margin-bottom: 10px;
+  font-size: 28px;
+  text-align: center;
+}
+
+.subtitle {
+  color: #a1a1aa;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 14px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+label {
+  color: #e4e4e7;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+input[type="number"],
+input[type="text"],
+select {
+  padding: 12px;
+  border: 1px solid #ffffff26;
+  border-radius: calc(0.625rem - 2px);
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background-color: #222225;
+  color: #ffffff;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus,
+select:focus {
+  outline: none;
+  border-color: #1f3fad;
+  background-color: #222225;
+  box-shadow: 0 0 0 3px rgba(31, 63, 173, 0.1);
+}
+
+select:disabled {
+  background-color: #222225;
+  color: #52525b;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  cursor: pointer;
+  border: 1px solid #ffffff26;
+  border-radius: 4px;
+  background-color: #222225;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #1f3fad;
+  border-color: #1f3fad;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-group label {
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+button {
+  grid-column: 1 / -1;
+  background: #1f3fad;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: calc(0.625rem - 2px);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  position: relative;
+}
+
+button:hover:not(:disabled) {
+  background: #1d378f;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(31, 63, 173, 0.3);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: #1d378f;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+button.loading .button-text {
+  visibility: hidden;
+}
+
+button .spinner {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+button.loading .spinner {
+  display: block;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.required {
+  color: #ef4444;
+}
+
+.result-container {
+  margin-top: 30px;
+  padding: 30px;
+  background-color: #222225;
+  border: 1px solid #ffffff26;
+  border-radius: calc(0.625rem - 2px);
+  text-align: center;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-title {
+  color: #a1a1aa;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.result-price {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .container {
+    padding: 30px 20px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}
