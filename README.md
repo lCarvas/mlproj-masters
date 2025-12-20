@@ -26,3 +26,14 @@ still be used but uv is recommended.
    ```bash
    poe serve
    ```
+
+1. Head to localhost:8000 after the app is done loading
+
+## File Locations
+
+- [Main file](./src/main.ipynb)
+- [Custom pipeline transformers](./src/funcs/custom_transformers.py)
+- [Data importing and exploration](./src/funcs/data_import.py)
+- [Pipeline building functions](./src/funcs/pipeline.py)
+- [Preprocessing (Excluding custom transformers)](./src/funcs/preprocessing.py)
+- [API for the interface to get new predictions](./src/mlproj_web/api.py)
