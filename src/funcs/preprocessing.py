@@ -228,41 +228,6 @@ _MODELS: dict[str, tuple[str, ...]] = {
 }
 
 
-def fill_na(
-    train_df: pl.DataFrame,
-    test_df: pl.DataFrame,
-    metric_features: Sequence[str],
-    bool_features: Sequence[str],
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Fills NA values in the DataFrame.
-
-    Args:
-        train_df (pl.DataFrame): Train Polars DataFrame to fill NA values.
-        test_df (pl.DataFrame): Validation Polars DataFrame to fill NA values.
-        metric_features (Sequence[str]): Metric features to fill NA with median.
-        bool_features (Sequence[str]): Boolean features to fill NA with 0.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]:
-            Tuple containing the modified train and validation DataFrames.
-    """
-    for feat in metric_features:
-        train_col_median: PythonLiteral | None = train_df.get_column(
-            feat
-        ).median()
-        train_df = train_df.with_columns(
-            pl.col(feat).fill_null(train_col_median)
-        )
-
-        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
-
-    for feat in bool_features:
-        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
-        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
-
-    return train_df, test_df
-
-
 def bind_data(
     df: pl.DataFrame,
     thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
@@ -390,86 +355,6 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
         pl.DataFrame: Polars DataFrame with duplicate rows removed.
     """
     return df.unique()
-
-
-def get_dummies(
-    df_train: pl.DataFrame,
-    df_test: pl.DataFrame,
-    categorical_features: Sequence[str],
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Convert categorical features to dummy variables.
-
-    Args:
-        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
-        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-        categorical_features (Sequence[str]):
-            List of categorical feature names to convert.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]:
-            Tuple containing the modified train and validation DataFrames.
-    """
-    df_train = df_train.to_dummies(columns=categorical_features)
-
-    df_test = df_test.to_dummies(columns=categorical_features)
-
-    all_columns: set[str] = set(df_train.columns).union(set(df_test.columns))
-
-    for col in all_columns:
-        if col not in df_train.columns:
-            df_train = df_train.with_columns(pl.lit(0).alias(col))
-        if col not in df_test.columns:
-            df_test = df_test.with_columns(pl.lit(0).alias(col))
-
-    final_cols: list[str] = sorted(all_columns)
-    df_train = df_train.select(final_cols)
-    df_test = df_test.select(final_cols)
-
-    return df_train, df_test
-
-
-def scale_data(
-    df_train: pl.DataFrame,
-    df_test: pl.DataFrame,
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Scale numerical features in the DataFrame using Min-Max scaling.
-
-    Args:
-        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
-        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train
-        and validation DataFrames.
-    """
-    exclude_selector: cs.Selector = cs.exclude(
-        cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
-    )
-
-    df_train_min: dict[str, float] = (
-        df_train.select(exclude_selector).min().to_dicts()[0]
-    )
-    df_train_max: dict[str, float] = (
-        df_test.select(exclude_selector).max().to_dicts()[0]
-    )
-
-    df_train = df_train.with_columns(
-        [
-            (pl.col(col) - df_train_min[col])
-            / (df_train_max[col] - df_train_min[col])
-            for col in df_train.select(exclude_selector).columns
-        ]
-    )
-
-    df_test = df_test.with_columns(
-        [
-            (pl.col(col) - df_train_min[col])
-            / (df_train_max[col] - df_train_min[col])
-            for col in df_test.select(exclude_selector).columns
-        ]
-    )
-
-    return df_train, df_test
 
 
 def fix_data(
