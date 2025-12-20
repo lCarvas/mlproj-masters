@@ -228,41 +228,7 @@ _MODELS: dict[str, tuple[str, ...]] = {
 }
 
 
-def fill_na(
-    train_df: pl.DataFrame,
-    test_df: pl.DataFrame,
-    metric_features: Sequence[str],
-    bool_features: Sequence[str],
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Fills NA values in the DataFrame.
-
-    Args:
-        train_df (pl.DataFrame): Train Polars DataFrame to fill NA values.
-        test_df (pl.DataFrame): Validation Polars DataFrame to fill NA values.
-        metric_features (Sequence[str]): Metric features to fill NA with median.
-        bool_features (Sequence[str]): Boolean features to fill NA with 0.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
-    """
-    for feat in metric_features:
-        train_col_median: PythonLiteral | None = train_df.get_column(
-            feat
-        ).median()
-        train_df = train_df.with_columns(
-            pl.col(feat).fill_null(train_col_median)
-        )
-
-        test_df = test_df.with_columns(pl.col(feat).fill_null(train_col_median))
-
-    for feat in bool_features:
-        train_df = train_df.with_columns(pl.col(feat).fill_null(0))
-        test_df = test_df.with_columns(pl.col(feat).fill_null(0))
-
-    return train_df, test_df
-
-
-def bind_data(  # noqa: C901
+def bind_data(
     df: pl.DataFrame,
     thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
     *,
@@ -271,49 +237,72 @@ def bind_data(  # noqa: C901
 ) -> pl.DataFrame:
     """Bind data within specified thresholds.
 
-    Sets values outside thresholds to None, or winsorizes/removes them based on parameters.
+    Sets values outside thresholds to None, or winsorizes/removes them.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be filtered.
         thresholds (Mapping[str, dict[Literal["lower", "upper"], float | None]]):
             A dictionary where keys are column names and values are dictionaries
             with 'lower' and 'upper' keys specifying the threshold values.
-        winsorize (bool, optional): If True, values outside thresholds are set to the threshold values. Defaults to False.
-        remove_outliers (bool, optional): If True, rows with values outside thresholds are removed. Defaults to False.
+        winsorize (bool, optional):
+            If True, values outside thresholds are set to the threshold values.
+            Defaults to False.
+        remove_outliers (bool, optional):
+            If True, rows with values outside thresholds are removed.
+            Defaults to False.
 
     Returns:
         pl.DataFrame: Filtered Polars DataFrame.
     """
     if winsorize:
-        for k, v in thresholds.items():
-            if v["lower"] is not None:
-                df = df.with_columns(
-                    pl.when(pl.col(k) < v["lower"])
-                    .then(v["lower"])
-                    .otherwise(pl.col(k))
-                    .alias(k)
-                )
-
-            if v["upper"] is not None:
-                df = df.with_columns(
-                    pl.when(pl.col(k) > v["upper"])
-                    .then(v["upper"])
-                    .otherwise(pl.col(k))
-                    .alias(k)
-                )
-
-        return df
-
+        return _winsorize_bind(df, thresholds)
     if remove_outliers:
-        for k, v in thresholds.items():
-            if v["lower"] is not None:
-                df = df.filter(pl.col(k) >= v["lower"])
+        return _remove_outlier_rows_bind(df, thresholds)
+    return _null_outside_bind(df, thresholds)
 
-            if v["upper"] is not None:
-                df = df.filter(pl.col(k) <= v["upper"])
 
-        return df
+def _winsorize_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
+    for k, v in thresholds.items():
+        if v["lower"] is not None:
+            df = df.with_columns(
+                pl.when(pl.col(k) < v["lower"])
+                .then(v["lower"])
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
 
+        if v["upper"] is not None:
+            df = df.with_columns(
+                pl.when(pl.col(k) > v["upper"])
+                .then(v["upper"])
+                .otherwise(pl.col(k))
+                .alias(k)
+            )
+
+    return df
+
+
+def _remove_outlier_rows_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
+    for k, v in thresholds.items():
+        if v["lower"] is not None:
+            df = df.filter(pl.col(k) >= v["lower"])
+
+        if v["upper"] is not None:
+            df = df.filter(pl.col(k) <= v["upper"])
+
+    return df
+
+
+def _null_outside_bind(
+    df: pl.DataFrame,
+    thresholds: Mapping[str, Mapping[Literal["lower", "upper"], float | None]],
+) -> pl.DataFrame:
     for k, v in thresholds.items():
         if v["lower"] is not None:
             df = df.with_columns(
@@ -340,14 +329,16 @@ def remove_unneeded_floats(
 ) -> pl.DataFrame:
     """Convert specified float columns to integers.
 
-    This only strips the decimal part of the float, it does not round the values.
+    This strips the decimal part of the float, it does not round the values.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.
-        unneeded_float_features (Sequence[str]): List of column names to convert from float to int.
+        unneeded_float_features (Sequence[str]):
+            List of column names to convert from float to int.
 
     Returns:
-        pl.DataFrame: Polars DataFrame with specified columns converted to integers.
+        pl.DataFrame:
+            Polars DataFrame with specified columns converted to integers.
     """
     for col in unneeded_float_features:
         df = df.with_columns(pl.col(col).cast(pl.Int64))
@@ -364,83 +355,6 @@ def remove_duplicates(df: pl.DataFrame) -> pl.DataFrame:
         pl.DataFrame: Polars DataFrame with duplicate rows removed.
     """
     return df.unique()
-
-
-def get_dummies(
-    df_train: pl.DataFrame,
-    df_test: pl.DataFrame,
-    categorical_features: Sequence[str],
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Convert categorical features to dummy variables.
-
-    Args:
-        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
-        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-        categorical_features (Sequence[str]): List of categorical feature names to convert.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
-    """
-    df_train = df_train.to_dummies(columns=categorical_features)
-
-    df_test = df_test.to_dummies(columns=categorical_features)
-
-    all_columns: set[str] = set(df_train.columns).union(set(df_test.columns))
-
-    for col in all_columns:
-        if col not in df_train.columns:
-            df_train = df_train.with_columns(pl.lit(0).alias(col))
-        if col not in df_test.columns:
-            df_test = df_test.with_columns(pl.lit(0).alias(col))
-
-    final_cols: list[str] = sorted(all_columns)
-    df_train = df_train.select(final_cols)
-    df_test = df_test.select(final_cols)
-
-    return df_train, df_test
-
-
-def scale_data(
-    df_train: pl.DataFrame,
-    df_test: pl.DataFrame,
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Scale numerical features in the DataFrame using Min-Max scaling.
-
-    Args:
-        df_train (pl.DataFrame): Train Polars DataFrame to be modified.
-        df_test (pl.DataFrame): Validation Polars DataFrame to be modified.
-
-    Returns:
-        tuple[pl.DataFrame, pl.DataFrame]: Tuple containing the modified train and validation DataFrames.
-    """
-    exclude_selector: cs.Selector = cs.exclude(
-        cs.contains("_"), cs.contains("hasDamage"), cs.contains("carID")
-    )
-
-    df_train_min: dict[str, float] = (
-        df_train.select(exclude_selector).min().to_dicts()[0]
-    )
-    df_train_max: dict[str, float] = (
-        df_test.select(exclude_selector).max().to_dicts()[0]
-    )
-
-    df_train = df_train.with_columns(
-        [
-            (pl.col(col) - df_train_min[col])
-            / (df_train_max[col] - df_train_min[col])
-            for col in df_train.select(exclude_selector).columns
-        ]
-    )
-
-    df_test = df_test.with_columns(
-        [
-            (pl.col(col) - df_train_min[col])
-            / (df_train_max[col] - df_train_min[col])
-            for col in df_test.select(exclude_selector).columns
-        ]
-    )
-
-    return df_train, df_test
 
 
 def fix_data(
@@ -468,11 +382,20 @@ def fix_data(
     )
 
 
-def fix_models(df: pl.DataFrame) -> pl.DataFrame:
+def fix_models(
+    df: pl.DataFrame,
+    *,
+    max_len_tolerance: int = 2,
+    is_second_pass: bool = False,
+) -> pl.DataFrame:
     """Fix model names in the DataFrame.
 
     Args:
         df (pl.DataFrame): Polars DataFrame to be modified.
+        max_len_tolerance (int, optional):
+            Max len difference between element and actual model. Defaults to 2.
+        is_second_pass (bool, optional):
+            Whether this is a second pass for fixing models. Defaults to False.
 
     Returns:
         pl.DataFrame: Polars DataFrame with fixed model names.
@@ -482,7 +405,12 @@ def fix_models(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(
         pl.struct(["model", "Brand"])
         .map_elements(
-            lambda x: _fix_model_spelling(x["model"], x["Brand"]),
+            lambda x: _fix_model_spelling(
+                x["model"],
+                x["Brand"],
+                max_len_tolerance=max_len_tolerance,
+                is_second_pass=is_second_pass,
+            ),
             return_dtype=pl.String,
         )
         .alias("model")
@@ -509,15 +437,21 @@ def _search_all_matches(element: str, tol: int) -> list[str]:
     )
 
 
-def _resolve_brand(element: str, brand: str, tol: int) -> str:
+def _resolve_brand(
+    element: str, brand: str, tol: int, *, is_second_pass: bool
+) -> str:
     matches: list[str] = _search_brand_matches(brand, element, tol)
 
     if len(matches) > 1:
         if element in {"viva", "mokka", "verso", "golf", "ka"}:
             return element
+        if is_second_pass:
+            return "unknown"
         return element + "::multiple"
     if len(matches) == 1:
         return matches[0]
+    if is_second_pass:
+        return "unknown"
     return element + "::none"
 
 
@@ -538,17 +472,24 @@ def _resolve_no_brand(element: str, tol: int) -> str:
 
 
 def _fix_model_spelling(
-    element: str | None, brand: str | None, *, max_len_tolerance: int = 2
+    element: str | None,
+    brand: str | None,
+    *,
+    max_len_tolerance: int = 2,
+    is_second_pass: bool,
 ) -> str | None:
     """Fix model spelling for a given element and brand.
 
     Args:
         element (str): The model name to be checked and fixed.
         brand (str | None): The brand name associated with the element.
-        max_len_tolerance (int, optional): Max len difference between element and actual model. Defaults to 2.
+        max_len_tolerance (int, optional):
+            Max len difference between element and actual model. Defaults to 2.
+        is_second_pass (bool): Whether this is a second pass for fixing models.
 
     Returns:
-        str: The fixed model name or the original element with appropriate suffixes if applicable.
+        str: The fixed model name or the original element with appropriate
+        suffixes if applicable.
     """
     if element is None:
         return element
@@ -557,7 +498,9 @@ def _fix_model_spelling(
         element = "ka"
 
     if brand:
-        return _resolve_brand(element, brand, max_len_tolerance)
+        return _resolve_brand(
+            element, brand, max_len_tolerance, is_second_pass=is_second_pass
+        )
 
     return _resolve_no_brand(element, max_len_tolerance)
 
@@ -602,3 +545,36 @@ def fix_no_brand_models(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     return df.drop("brand_from_model")
+
+
+def coalesce_null_columns(
+    df: pl.DataFrame,
+    columns: Sequence[str],
+) -> pl.DataFrame:
+    """Coalesce "null" and "unknown" columns, taking the first non-null value.
+
+    Args:
+        df (pl.DataFrame): Polars DataFrame to be modified.
+        columns (Sequence[str]):
+            List of column names to coalesce their null and unknown columns.
+
+    Returns:
+        pl.DataFrame: Polars DataFrame with the new coalesced column.
+    """
+    for col in columns:
+        unknown_col: str = f"{col}_unknown"
+        null_col: str = f"{col}_null"
+
+        has_unknown: bool = unknown_col in df.columns
+        has_null: bool = null_col in df.columns
+
+        if has_unknown and has_null:
+            df = df.with_columns(
+                pl.coalesce(pl.col(unknown_col), pl.col(null_col)).alias(
+                    unknown_col
+                )
+            )
+            df = df.drop(null_col)
+        elif has_null and not has_unknown:
+            df = df.rename({f"{col}_null": f"{col}_unknown"})
+    return df
