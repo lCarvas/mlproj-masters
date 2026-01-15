@@ -89,13 +89,6 @@ preproc_pipeline: Pipeline = build_preprocessing_pipeline(
         "hasDamage",
     ],
     scaling_exclude_selector=("_", "hasDamage"),
-    columns_to_coalesce=(
-        "Brand",
-        "model",
-        "transmission",
-        "fuelType",
-        "year",
-    ),
 )
 
 

@@ -41,11 +41,29 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
     unneeded_float_features: Sequence[str],
     scaling_exclude_selector: Iterable | None = None,
     max_len_tolerance: int = 2,
-    columns_to_coalesce: Sequence[str],
 ) -> Pipeline:
     """Build a sklearn Pipeline composed of custom Polars-based transformers.
 
-    Returns an sklearn.pipeline.Pipeline instance.
+    Args:
+        metric_features (Sequence[str]): List of metric feature names.
+        bool_features (Sequence[str]): List of boolean feature names.
+        categorical_features (Sequence[str]): List of categorical feature names.
+        thresholds (Mapping[str, Mapping[Literal["lower", "upper"], float | None]]):
+            Mapping of feature names to their lower and upper thresholds for
+            outlier removal.
+        unneeded_float_features (Sequence[str]):
+            List of column names to convert from float to int.
+        winsorize (bool, optional):
+            Whether to apply winsorization to the data. Defaults to False.
+        remove_outliers (bool, optional):
+            Whether to remove outliers from the data. Defaults to False.
+        scaling_exclude_selector (Iterable | None, optional):
+            List of columns to exclude from scaling. Defaults to None.
+        max_len_tolerance (int, optional):
+            Maximum length tolerance for string features. Defaults to 2.
+
+    Returns:
+        Pipeline: an sklearn.pipeline.Pipeline instance.
     """
     steps: tuple[Any, ...] = (
         (
@@ -160,7 +178,7 @@ def build_preprocessing_pipeline(  # noqa: PLR0913
             FunctionTransformer(
                 partial(
                     coalesce_null_columns,
-                    columns=columns_to_coalesce,
+                    columns=categorical_features,
                 )
             ),
         ),
@@ -179,7 +197,14 @@ def build_feature_selection_pipeline(
 ) -> Pipeline:
     """Build a sklearn Pipeline for feature selection.
 
-    Returns an sklearn.pipeline.Pipeline instance.
+    Args:
+        corr_threshold (float): Threshold for removing highly correlated features.
+        estimator (BaseEstimator): Estimator used for feature importance.
+        importance_threshold (float | None, optional):
+            Threshold for selecting important features. Defaults to 0.05.
+
+    Returns:
+        Pipeline: An sklearn.pipeline.Pipeline instance.
     """
     steps: tuple[Any, ...] = (
         ("constant_variance_filter", ConstantVarianceRemover()),
@@ -209,7 +234,18 @@ def build_permutation_feature_selection_pipeline(
 
     Uses permutation importance instead of SelectFromModel.
 
-    Returns an sklearn.pipeline.Pipeline instance.
+    Args:
+        corr_threshold (float): Threshold for removing highly correlated features.
+        estimator (BaseEstimator): Estimator used for feature importance.
+        n_repeats (int, optional):
+            Number of permutations to use for feature importance. Defaults to 10.
+        scoring (str | Sequence[str] | None, optional):
+            Scoring metric to use for feature importance. Defaults to None.
+        importance_threshold (float | None, optional):
+            Threshold for selecting important features. Defaults to 0.05.
+
+    Returns:
+        Pipeline: An sklearn.pipeline.Pipeline instance.
     """
     steps: tuple[tuple[str, Any], ...] = (
         ("constant_variance_filter", ConstantVarianceRemover()),
